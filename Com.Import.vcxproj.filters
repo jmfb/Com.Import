@@ -1,0 +1,58 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="main.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Com">
+      <UniqueIdentifier>{75448d08-f36a-4e3c-aba9-82af6bc49ef5}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Com\Pointer.h">
+      <Filter>Com</Filter>
+    </ClInclude>
+    <ClInclude Include="Com\ObjectList.h">
+      <Filter>Com</Filter>
+    </ClInclude>
+    <ClInclude Include="Com\Object.h">
+      <Filter>Com</Filter>
+    </ClInclude>
+    <ClInclude Include="Com\Module.h">
+      <Filter>Com</Filter>
+    </ClInclude>
+    <ClInclude Include="Com\InterfaceList.h">
+      <Filter>Com</Filter>
+    </ClInclude>
+    <ClInclude Include="Com\Error.h">
+      <Filter>Com</Filter>
+    </ClInclude>
+    <ClInclude Include="Com\DispatchInterfaceSelector.h">
+      <Filter>Com</Filter>
+    </ClInclude>
+    <ClInclude Include="Com\Dispatch.h">
+      <Filter>Com</Filter>
+    </ClInclude>
+    <ClInclude Include="Com\Convert.h">
+      <Filter>Com</Filter>
+    </ClInclude>
+    <ClInclude Include="Com\Com.h">
+      <Filter>Com</Filter>
+    </ClInclude>
+    <ClInclude Include="Com\ClassFactory.h">
+      <Filter>Com</Filter>
+    </ClInclude>
+    <ClInclude Include="DataTypes.h" />
+    <ClInclude Include="VariableDescription.h" />
+    <ClInclude Include="TypeInfo.h" />
+    <ClInclude Include="TypeLibrary.h" />
+    <ClInclude Include="FunctionDescription.h" />
+    <ClInclude Include="TypeDescription.h" />
+    <ClInclude Include="ArgumentNames.h" />
+    <ClInclude Include="ElementDescription.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+    <None Include=".gitignore" />
+  </ItemGroup>
+</Project>
