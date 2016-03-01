@@ -50,6 +50,7 @@
     <ClInclude Include="TypeDescription.h" />
     <ClInclude Include="ArgumentNames.h" />
     <ClInclude Include="ElementDescription.h" />
+    <ClInclude Include="CodeGenerator.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

@@ -4,7 +4,12 @@
 #include <iostream>
 #include <exception>
 #include <stdexcept>
+#include <fstream>
 #include "Com/Com.h"
+
+//#import "C:\Program Files (x86)\Common Files\System\ado\msado21.tlb" raw_interfaces_only named_guids
+//#import "C:\Windows\SysWOW64\msvbvm60.dll" raw_interfaces_only named_guids
+//#import "C:\Temp\DSCommon.tlb" raw_interfaces_only named_guids
 
 #include "DataTypes.h"
 
@@ -18,7 +23,19 @@ void DisplayHelp()
 
 #include "TypeLibrary.h"
 #include "TypeInfo.h"
+#include "CodeGenerator.h"
 using namespace Com::Import;
+
+std::string GetTitle(const std::string& fileName)
+{
+	auto lastSlash = fileName.rfind('\\');
+	auto lastDot = fileName.rfind('.');
+	if (lastSlash == std::string::npos && lastDot == std::string::npos)
+		return fileName;
+	if (lastDot == std::string::npos)
+		return fileName.substr(lastSlash + 1);
+	return fileName.substr(lastSlash + 1, lastDot - lastSlash - 1);
+}
 
 void ImportTypeLibrary(const std::string& typeLibraryFileName)
 {
@@ -74,80 +91,13 @@ void ImportTypeLibrary(const std::string& typeLibraryFileName)
 		}
 	}
 
-	std::cout << "#pragma once" << std::endl;
-	//TODO: cross referenced libraries
+	//TODO: sort records by usage of each other
 
-	std::cout << "#pragma pack(push, 8)" << std::endl
-		<< std::endl
-		<< "namespace " << library.Name << std::endl
-		<< "{" << std::endl;
-
-	std::cout << "//Enumerations" << std::endl;
-	for (auto value : library.Enums)
-	{
-		std::cout << "enum " << value.Name << std::endl
-			<< "{" << std::endl;
-		for (auto v : value.Values)
-		{
-			std::cout << "    " << v.Name << " = " << v.Value << "," << std::endl;
-		}
-		std::cout << "};" << std::endl;
-	}
-
-	std::cout << "//Forward declarations" << std::endl;
-	for (auto value : library.Interfaces)
-	{
-		//
-	}
-
-	std::cout << "//Aliases" << std::endl;
-	for (auto value : library.Aliases)
-	{
-		std::cout << "using " << value.NewName << " = " << value.OldName << ";" << std::endl;
-	}
-
-	//TODO: Sort records
-	std::cout << "//Records" << std::endl;
-	for (auto value : library.Records)
-	{
-		std::cout << "#pragma pack(push, " << value.Alignment << ")" << std::endl
-			<< "struct " << value.Name << std::endl
-			<< "{" << std::endl;
-		for (auto m : value.Members)
-		{
-			std::cout << "    " << m.Name << ";" << std::endl;
-		}
-		std::cout << "};" << std::endl;
-	}
-
-	std::cout << "//Interfaces" << std::endl;
-	for (auto value : library.Interfaces)
-	{
-		std::cout << "class __declspec(uuid(...)) " << value.Name << " : public " << value.Base << std::endl
-			<< "{" << std::endl
-			<< "public:" << std::endl;
-		for (auto f : value.Functions)
-		{
-			std::cout << "    " << f.Name << "();" << std::endl;
-		}
-		std::cout << "};" << std::endl;
-	}
-
-	std::cout << "//Identifiers" << std::endl;
-	for (auto value : library.Identifiers)
-	{
-		std::cout << "extern const ::GUID " << value.Name << " = {...};" << std::endl;
-	}
-
-	std::cout << "//Coclasses" << std::endl;
-	for (auto value : library.Coclasses)
-	{
-		std::cout << "// coclass " << value.Name << std::endl;
-		for (auto i : value.Interfaces)
-			std::cout << "//   " << i << std::endl;
-	}
-
-	std::cout << "}" << std::endl;
+	auto headerFileName = GetTitle(typeLibraryFileName) + ".h";
+	std::cout << "Generating header file: " << headerFileName << std::endl;
+	std::ofstream out(headerFileName.c_str());
+	CodeGenerator generator(out);
+	generator.Write(library);
 }
 
 int main(int argc, char** argv)

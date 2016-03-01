@@ -146,6 +146,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ArgumentNames.h" />
+    <ClInclude Include="CodeGenerator.h" />
     <ClInclude Include="Com\ClassFactory.h" />
     <ClInclude Include="Com\Com.h" />
     <ClInclude Include="Com\Convert.h" />

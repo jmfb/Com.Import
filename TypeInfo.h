@@ -3,6 +3,7 @@
 #include "VariableDescription.h"
 #include "FunctionDescription.h"
 #include "Com/Com.h"
+#include <algorithm>
 
 namespace Com
 {
@@ -174,9 +175,11 @@ namespace Com
 					TryUpdateBaseInterface(result);
 				for (auto index = 0u; index < attributes->cFuncs; ++index)
 					result.Functions.push_back(FunctionDescription{ libraryName, typeInfo, index }.ToFunction(result.SupportsDispatch));
+				std::sort(result.Functions.begin(), result.Functions.end(), &FunctionIsLessThan);
 				return result;
 			}
 
+		private:
 			void TryUpdateBaseInterface(Interface& value) const
 			{
 				HREFTYPE baseHandle = 0;
@@ -192,6 +195,25 @@ namespace Com
 				value.VtblOffset = baseTypeInfo.attributes->cbSizeVft;
 				if (baseTypeInfo.libraryName != libraryName && baseTypeInfo.libraryName != "stdole")
 					value.Name = baseTypeInfo.libraryName + "::" + value.Name;
+			}
+
+			static bool FunctionIsLessThan(const Function& lhs, const Function& rhs)
+			{
+				if (!lhs.IsDispatchOnly)
+					return rhs.IsDispatchOnly ?
+						true :
+						lhs.VtblOffset < rhs.VtblOffset;
+				if (rhs.IsDispatchOnly)
+					return false;
+				if (lhs.MemberId != rhs.MemberId)
+					return lhs.MemberId < rhs.MemberId;
+				if (lhs.IsPropGet != rhs.IsPropGet)
+					return lhs.IsPropGet;
+				if (lhs.IsPropPut != rhs.IsPropPut)
+					return lhs.IsPropPut;
+				if (lhs.IsPropPutRef != rhs.IsPropPutRef)
+					return lhs.IsPropPutRef;
+				return false;
 			}
 		};
 	}
