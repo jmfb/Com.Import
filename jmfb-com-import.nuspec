@@ -1,0 +1,24 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!-- Do not remove this test for UTF-8: if “Ω” doesn’t appear as greek uppercase omega letter enclosed in quotation marks, you should use an editor that supports UTF-8, not this one. -->
+<package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
+	<metadata>
+		<id>jmfb-com-import</id>
+		<title>Jmfb.Com.Import (Install)</title>
+		<version>0.0.1</version>
+		<authors>Jacob Buysse</authors>
+		<owners>Jacob Buysse</owners>
+		<summary>C++ COM Import Command Line Utility</summary>
+		<description>Command line utility for importing COM type libraries.
+			Generates C++ header files.
+		</description>
+		<projectUrl>https://github.com/jmfb/Com.Import</projectUrl>
+		<tags>jmfb-com-import admin</tags>
+		<copyright>2016</copyright>
+		<licenseUrl>http://www.gnu.org/licenses/gpl.html</licenseUrl>
+		<requireLicenseAcceptance>false</requireLicenseAcceptance>
+		<releaseNotes>Initial beta release.</releaseNotes>
+	</metadata>
+	<files>
+		<file src="Release\Com.Import.exe" target="tools" />
+	</files>
+</package>

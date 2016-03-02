@@ -55,5 +55,9 @@
   <ItemGroup>
     <None Include="packages.config" />
     <None Include=".gitignore" />
+    <None Include="jmfb-com-import.nuspec" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="jmfb-com-import.txt" />
   </ItemGroup>
 </Project>

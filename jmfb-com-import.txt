@@ -1,0 +1,44 @@
+> choco new [package-name] --version [version] --maintainer="Jacob Buysse"
+
+This creates the directory with the package name, creates the nuspec file, and the tools directory with sample install scripts.
+
+> cd [package-name]
+> notepad [package-name].nuspec
+
+Edit the nuspec file, fill in template values.  Save.
+
+> cd [tools]
+> del *.*
+
+Delete all of the scripts and the readme.  Don't need them for self-contained executable that is "shimmed".
+
+> copy [exe-full-path]
+
+Copy the exe to the tools folder.
+
+> cd ..
+> choco pack
+
+Creates package (nupkg file with correct version, etc.)
+
+> choco install [package-name] -source '[full-package-dir]' -f
+
+Tests installation of the package.  This will automatically "shim" the contained exe.
+
+> cd [wherever]
+> [your-installed-exe-name]
+
+Tests that the installation worked and that you can run your application from anywhere.
+
+> choco uninstall [package-name]
+
+Removes your test installation of the package.
+
+> choco apikey -k [your-api-key] -source https://chocolatey.org/
+
+Sets your apikey (you only need to do this once as far as I know) so you can push to the main feed.
+
+> cd [full-package-dir]
+> choco push .\[package-name].[version].nupkg -s https://chocolatey.org/
+
+Pushes your package to chocolatey.  This is not immediately available in the feed but instead is waiting moderators to review it.
