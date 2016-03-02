@@ -13,7 +13,7 @@
 		</description>
 		<projectUrl>https://github.com/jmfb/Com.Import</projectUrl>
 		<tags>jmfb-com-import admin</tags>
-		<copyright>2016</copyright>
+		<copyright>© 2016 Jacob Buysse</copyright>
 		<licenseUrl>http://www.gnu.org/licenses/gpl.html</licenseUrl>
 		<requireLicenseAcceptance>false</requireLicenseAcceptance>
 		<releaseNotes>Initial beta release.</releaseNotes>
