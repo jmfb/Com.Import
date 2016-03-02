@@ -51,6 +51,9 @@
     <ClInclude Include="ArgumentNames.h" />
     <ClInclude Include="ElementDescription.h" />
     <ClInclude Include="CodeGenerator.h" />
+    <ClInclude Include="Loader.h" />
+    <ClInclude Include="RecordSorter.h" />
+    <ClInclude Include="LibraryLoader.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

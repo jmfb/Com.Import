@@ -2,6 +2,7 @@
 #include "DataTypes.h"
 #include "VariableDescription.h"
 #include "FunctionDescription.h"
+#include "Loader.h"
 #include "Com/Com.h"
 #include <algorithm>
 
@@ -99,9 +100,11 @@ namespace Com
 				hr = originalLibrary->GetDocumentation(-1, Get(originalLibraryName), nullptr, nullptr, nullptr);
 				CheckError(hr, __FUNCTION__, "originalLibrary->GetDocumentation");
 
-				//TODO: Add reference to other library
 				if (libraryName != originalLibraryName)
+				{
+					Loader::AddReference(originalLibrary);
 					originalName = originalLibraryName + "::" + originalName;
+				}
 				return{ originalName, GetName() };
 			}
 
@@ -145,7 +148,7 @@ namespace Com
 					return "I" + name;
 				}
 
-				//TODO: Add reference to library
+				Loader::AddReference(referenceLibrary);
 				return referenceLibraryName + "::" + name;
 			}
 

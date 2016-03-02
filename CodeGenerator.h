@@ -6,6 +6,7 @@
 #include <type_traits>
 #include <locale>
 #include <codecvt>
+#include <fstream>
 
 namespace Com
 {
@@ -26,12 +27,28 @@ namespace Com
 
 			CodeGenerator& operator=(const CodeGenerator& rhs) = delete;
 
+			static void Generate(const LoadLibraryResult& result)
+			{
+				Generate(result.PrimaryLibrary);
+				for (auto& reference : result.ReferencedLibraries)
+					Generate(reference);
+			}
+
+			static void Generate(const Library& library)
+			{
+				std::cout << "Generating header: " << library.HeaderFileName << std::endl;
+				std::ofstream out{ library.HeaderFileName.c_str() };
+				CodeGenerator generator(out);
+				generator.Write(library);
+			}
+
 			void Write(const Library& library)
 			{
 				out << "#pragma once" << std::endl
-					<< "#include <objbase.h>" << std::endl
-					//TODO: library cross references
-					<< "#pragma pack(push, 8)" << std::endl
+					<< "#include <objbase.h>" << std::endl;
+				for (auto& reference : library.References)
+					out << "#include \"" << reference << "\"" << std::endl;
+				out << "#pragma pack(push, 8)" << std::endl
 					<< "namespace " << library.Name << std::endl
 					<< "{" << std::endl;
 				Write(library.Enums);

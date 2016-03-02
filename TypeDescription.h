@@ -1,5 +1,6 @@
 #pragma once
 #include "DataTypes.h"
+#include "Loader.h"
 #include "Com/Com.h"
 
 namespace Com
@@ -180,7 +181,7 @@ namespace Com
 					return "I" + customName;
 				}
 
-				//TODO: Add reference to library
+				Loader::AddReference(customLibrary);
 				return customLibraryName + "::" + customName;
 			}
 
@@ -227,7 +228,7 @@ namespace Com
 					return "I" + name;
 				}
 
-				//TODO: Add reference to library
+				Loader::AddReference(referenceLibrary);
 				return referenceLibraryName + "::" + name;
 			}
 		};

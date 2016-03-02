@@ -21,6 +21,12 @@ namespace Com
 				hr = typeLibrary->GetLibAttr(&attributes);
 				CheckError(hr, __FUNCTION__, "GetLibAttr");
 			}
+			TypeLibrary(Pointer<ITypeLib> typeLibrary)
+				: typeLibrary(typeLibrary)
+			{
+				auto hr = typeLibrary->GetLibAttr(&attributes);
+				CheckError(hr, __FUNCTION__, "GetLibAttr");
+			}
 			TypeLibrary(const TypeLibrary& rhs) = delete;
 			~TypeLibrary()
 			{
@@ -54,6 +60,19 @@ namespace Com
 				auto hr = typeLibrary->GetTypeInfo(index, &typeInfo);
 				CheckError(hr, __FUNCTION__, "GetTypeInfo");
 				return typeInfo;
+			}
+
+			std::string QueryPath() const
+			{
+				std::string path;
+				auto hr = ::QueryPathOfRegTypeLib(
+					attributes->guid,
+					attributes->wMajorVerNum,
+					attributes->wMinorVerNum,
+					attributes->lcid,
+					Get(path));
+				CheckError(hr, __FUNCTION__, "QueryPathOfRegTypeLib");
+				return path;
 			}
 		};
 	}

@@ -129,6 +129,7 @@ namespace Com
 		struct Library
 		{
 			std::string Name;
+			std::string HeaderFileName;
 			std::vector<std::string> References;
 			std::vector<Identifier> Identifiers;
 			std::vector<Enum> Enums;

@@ -161,6 +161,9 @@
     <ClInclude Include="DataTypes.h" />
     <ClInclude Include="FunctionDescription.h" />
     <ClInclude Include="ElementDescription.h" />
+    <ClInclude Include="LibraryLoader.h" />
+    <ClInclude Include="Loader.h" />
+    <ClInclude Include="RecordSorter.h" />
     <ClInclude Include="TypeDescription.h" />
     <ClInclude Include="TypeInfo.h" />
     <ClInclude Include="TypeLibrary.h" />
