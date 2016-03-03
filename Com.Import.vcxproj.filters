@@ -2,10 +2,49 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="TypeLibrary.cpp">
+      <Filter>TypeLibrary</Filter>
+    </ClCompile>
+    <ClCompile Include="VariableDescription.cpp">
+      <Filter>TypeLibrary</Filter>
+    </ClCompile>
+    <ClCompile Include="ArgumentNames.cpp">
+      <Filter>TypeLibrary</Filter>
+    </ClCompile>
+    <ClCompile Include="ElementDescription.cpp">
+      <Filter>TypeLibrary</Filter>
+    </ClCompile>
+    <ClCompile Include="FunctionDescription.cpp">
+      <Filter>TypeLibrary</Filter>
+    </ClCompile>
+    <ClCompile Include="TypeDescription.cpp">
+      <Filter>TypeLibrary</Filter>
+    </ClCompile>
+    <ClCompile Include="TypeInfo.cpp">
+      <Filter>TypeLibrary</Filter>
+    </ClCompile>
+    <ClCompile Include="CodeGenerator.cpp">
+      <Filter>Importer</Filter>
+    </ClCompile>
+    <ClCompile Include="LibraryLoader.cpp">
+      <Filter>Importer</Filter>
+    </ClCompile>
+    <ClCompile Include="Loader.cpp">
+      <Filter>Importer</Filter>
+    </ClCompile>
+    <ClCompile Include="RecordSorter.cpp">
+      <Filter>Importer</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Com">
       <UniqueIdentifier>{75448d08-f36a-4e3c-aba9-82af6bc49ef5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Importer">
+      <UniqueIdentifier>{8ee4b990-97f7-4da4-8f1e-1026b7ce5688}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="TypeLibrary">
+      <UniqueIdentifier>{04bca9db-c0d3-43e9-81af-079264fa5614}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -42,18 +81,42 @@
     <ClInclude Include="Com\ClassFactory.h">
       <Filter>Com</Filter>
     </ClInclude>
-    <ClInclude Include="DataTypes.h" />
-    <ClInclude Include="VariableDescription.h" />
-    <ClInclude Include="TypeInfo.h" />
-    <ClInclude Include="TypeLibrary.h" />
-    <ClInclude Include="FunctionDescription.h" />
-    <ClInclude Include="TypeDescription.h" />
-    <ClInclude Include="ArgumentNames.h" />
-    <ClInclude Include="ElementDescription.h" />
-    <ClInclude Include="CodeGenerator.h" />
-    <ClInclude Include="Loader.h" />
-    <ClInclude Include="RecordSorter.h" />
-    <ClInclude Include="LibraryLoader.h" />
+    <ClInclude Include="DataTypes.h">
+      <Filter>Importer</Filter>
+    </ClInclude>
+    <ClInclude Include="LibraryLoader.h">
+      <Filter>Importer</Filter>
+    </ClInclude>
+    <ClInclude Include="Loader.h">
+      <Filter>Importer</Filter>
+    </ClInclude>
+    <ClInclude Include="CodeGenerator.h">
+      <Filter>Importer</Filter>
+    </ClInclude>
+    <ClInclude Include="RecordSorter.h">
+      <Filter>Importer</Filter>
+    </ClInclude>
+    <ClInclude Include="ArgumentNames.h">
+      <Filter>TypeLibrary</Filter>
+    </ClInclude>
+    <ClInclude Include="ElementDescription.h">
+      <Filter>TypeLibrary</Filter>
+    </ClInclude>
+    <ClInclude Include="FunctionDescription.h">
+      <Filter>TypeLibrary</Filter>
+    </ClInclude>
+    <ClInclude Include="TypeDescription.h">
+      <Filter>TypeLibrary</Filter>
+    </ClInclude>
+    <ClInclude Include="VariableDescription.h">
+      <Filter>TypeLibrary</Filter>
+    </ClInclude>
+    <ClInclude Include="TypeInfo.h">
+      <Filter>TypeLibrary</Filter>
+    </ClInclude>
+    <ClInclude Include="TypeLibrary.h">
+      <Filter>TypeLibrary</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

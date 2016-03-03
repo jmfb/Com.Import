@@ -1,6 +1,5 @@
 #pragma once
 #include "Com/Com.h"
-#include <stdexcept>
 
 namespace Com
 {
@@ -9,30 +8,15 @@ namespace Com
 		class Loader
 		{
 		public:
-			Loader()
-			{
-				GetInstance() = this;
-			}
-			~Loader()
-			{
-				GetInstance() = nullptr;
-			}
+			Loader();
+			~Loader();
 
 			virtual void Reference(Pointer<ITypeLib> typeLibrary) = 0;
 
-			static void AddReference(Pointer<ITypeLib> typeLibrary)
-			{
-				if (GetInstance() == nullptr)
-					throw std::runtime_error("An instance of loader must exist prior to calling AddReference.");
-				GetInstance()->Reference(typeLibrary);
-			}
+			static void AddReference(Pointer<ITypeLib> typeLibrary);
 
 		private:
-			static Loader*& GetInstance()
-			{
-				static Loader* instance = nullptr;
-				return instance;
-			}
+			static Loader*& GetInstance();
 		};
 	}
 }
