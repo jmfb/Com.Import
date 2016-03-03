@@ -23,10 +23,14 @@ namespace Com
 			CodeGenerator& operator=(const CodeGenerator& rhs) = delete;
 
 			static void Generate(const LoadLibraryResult& result, bool implement);
-			static void Generate(const Library& library, bool implement);
-			void Write(const Library& library);
 
 		private:
+			static void Generate(const Library& library, bool implement);
+			static void GenerateMain(const Library& library);
+			static void GenerateCoclasses(const Library& library);
+			static void GenerateCoclassHeader(const Library& library, const Coclass& coclass);
+			static void GenerateCoclassSource(const Library& library, const Coclass& coclass);
+			void Write(const Library& library);
 			void Write(const std::vector<Enum>& enums);
 			void Write(const Enum& enumeration);
 			static bool ShouldDisplayAsHex(const EnumValue& value);
@@ -51,7 +55,15 @@ namespace Com
 			void WriteRawFunctions(const Interface& iface);
 			void WriteWrappers(const std::vector<Interface>& interfaces);
 			void WriteWrapper(const Interface& iface);
+			void WriteComTypeInfo(const std::string& libraryName, const std::vector<Interface>& interfaces);
+			void WriteComTypeInfo(const std::string& libraryName, const Interface& iface);
+			void WriteWrapperFunctions(const Interface& iface);
+			void WriteWrapperDispatch(const std::string& interfaceName, const Function& function);
+			void WriteWrapperFunction(const std::string& interfaceName, const Function& function);
 			static std::string Format(const GUID& guid);
+			static std::string GetWrapperBase(const Interface& iface);
+			static std::string GetSmartPointer(const Type& type);
+			static bool IsStandardOle(const Type& type);
 
 			template <typename Integer>
 			void WriteHex(Integer value)

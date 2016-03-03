@@ -28,7 +28,83 @@ namespace Com
 			CodeGenerator{ std::ofstream{ library.HeaderFileName.c_str() }, implement }.Write(library);
 			if (!implement)
 				return;
-			//TODO: generate rc, def, main, and each coclass
+			GenerateMain(library);
+			GenerateCoclasses(library);
+			//TODO: generate rc, def
+		}
+
+		void CodeGenerator::GenerateMain(const Library& library)
+		{
+			std::cout << "Generating source: main.cpp" << std::endl;
+			std::ofstream out{ "main.cpp" };
+			out << "#include \"Com/Com.h\"" << std::endl;
+			for (auto& coclass : library.Coclasses)
+				out << "#include \"" << coclass.Name << ".h\"" << std::endl;
+			out << std::endl
+				<< "extern \"C\" BOOL __stdcall DllMain(HINSTANCE instance, DWORD reason, void* reserved)" << std::endl
+				<< "{" << std::endl
+				<< "\tif (reason == DLL_PROCESS_ATTACH)" << std::endl
+				<< "\t\tCom::Module::GetInstance().Initialize(instance);" << std::endl
+				<< "\treturn TRUE;" << std::endl
+				<< "}" << std::endl
+				<< std::endl
+				<< "HRESULT __stdcall DllCanUnloadNow()" << std::endl
+				<< "{" << std::endl
+				<< "\treturn Com::Module::GetInstance().CanUnload() ? S_OK : S_FALSE;" << std::endl
+				<< "}" << std::endl
+				<< std::endl
+				<< "HRESULT __stdcall DllGetClassObject(REFCLSID rclsid, REFIID riid, void** ppvObject)" << std::endl
+				<< "{" << std::endl
+				<< "\treturn Com::ObjectList<" << std::endl;
+			auto first = true;
+			for (auto& coclass : library.Coclasses)
+			{
+				if (!first)
+					out << "," << std::endl;
+				first = false;
+				out << "\t\t" << library.Name << "::" << coclass.Name;
+			}
+			out << std::endl
+				<< "\t>::Create(rclsid, riid, ppvObject);" << std::endl
+				<< "}" << std::endl;
+		}
+
+		void CodeGenerator::GenerateCoclasses(const Library& library)
+		{
+			for (auto& coclass : library.Coclasses)
+			{
+				GenerateCoclassHeader(library, coclass);
+				GenerateCoclassSource(library, coclass);
+			}
+		}
+
+		void CodeGenerator::GenerateCoclassHeader(const Library& library, const Coclass& coclass)
+		{
+			auto fileName = coclass.Name + ".h";
+			std::cout << "Generating header: " << fileName << std::endl;
+			std::ofstream out{ fileName.c_str() };
+			out << "#pragma once" << std::endl
+				<< "#include \"" << library.HeaderFileName << "\"" << std::endl
+				<< std::endl
+				<< "namespace " << library.Name << std::endl
+				<< "{" << std::endl
+				<< "\tclass " << coclass.Name << " : public " << coclass.Name << "Coclass<" << coclass.Name << ">" << std::endl
+				<< "\t{" << std::endl
+				<< "\tpublic:" << std::endl
+				<< "\t};" << std::endl
+				<< "}" << std::endl;
+		}
+
+		void CodeGenerator::GenerateCoclassSource(const Library& library, const Coclass& coclass)
+		{
+			auto fileName = coclass.Name + ".cpp";
+			std::cout << "Generating source: " << fileName << std::endl;
+			std::ofstream out{ fileName.c_str() };
+			out << "#include \"" << coclass.Name << ".h\"" << std::endl
+				<< std::endl
+				<< "namespace " << library.Name << std::endl
+				<< "{" << std::endl
+				<< "}" << std::endl;
 		}
 
 		void CodeGenerator::Write(const Library& library)
@@ -46,12 +122,12 @@ namespace Com
 			Write(library.Records);
 			Write(library.Interfaces);
 			Write(library.Identifiers);
+			WriteWrappers(library.Interfaces);
 			if (implement)
 				Write(library.Coclasses);
-			else
-				WriteWrappers(library.Interfaces);
-			out << "}" << std::endl
-				<< "#pragma pack(pop)" << std::endl;
+			out << "}" << std::endl;
+			WriteComTypeInfo(library.Name, library.Interfaces);
+			out << "#pragma pack(pop)" << std::endl;
 		}
 
 		void CodeGenerator::Write(const std::vector<Enum>& enums)
@@ -96,7 +172,9 @@ namespace Com
 
 		void CodeGenerator::ForwardDeclare(const Interface& iface)
 		{
-			out << "\tclass __declspec(uuid(\"" << Format(iface.Iid) << "\")) " << iface.Name << ";" << std::endl;
+			out << "\tclass __declspec(uuid(\"" << Format(iface.Iid) << "\")) " << iface.Name << ";" << std::endl
+				<< "\ttemplate <typename Interface> class " << iface.Name << "PtrT;" << std::endl
+				<< "\tusing " << iface.Name << "Ptr = " << iface.Name << "PtrT<" << iface.Name << ">;" << std::endl;
 		}
 
 		void CodeGenerator::Write(const std::vector<Alias>& aliases)
@@ -225,7 +303,7 @@ namespace Com
 			{
 			case TypeEnum::Enum:
 			case TypeEnum::Record: out << parameter.Type.CustomName; break;
-			case TypeEnum::Interface: out << "Com::Pointer<" << parameter.Type.CustomName << ">"; break;
+			case TypeEnum::Interface: out << GetSmartPointer(parameter.Type); break;
 			case TypeEnum::Int: out << "int"; break;
 			case TypeEnum::Int8: out << "char"; break;
 			case TypeEnum::Int16: out << "short"; break;
@@ -305,7 +383,7 @@ namespace Com
 			{
 			case TypeEnum::Enum:
 			case TypeEnum::Record: out << type.CustomName; break;
-			case TypeEnum::Interface: out << "Com::Pointer<" << type.CustomName << ">"; break;
+			case TypeEnum::Interface: out << GetSmartPointer(type); break;
 			case TypeEnum::Int: out << "int"; break;
 			case TypeEnum::Int8: out << "char"; break;
 			case TypeEnum::Int16: out << "short"; break;
@@ -385,7 +463,10 @@ namespace Com
 						first = false;
 						Write(argument);
 					}
-					out << ") { throw Com::NotImplemented(__FUNCTION__); }" << std::endl;
+					out << ")" << std::endl
+						<< "\t\t{" << std::endl
+						<< "\t\t\tthrow Com::NotImplemented(__FUNCTION__);" << std::endl
+						<< "\t\t}" << std::endl;
 				}
 			}
 		}
@@ -412,7 +493,13 @@ namespace Com
 						<< "\t\t\t{" << std::endl
 						<< "\t\t\t\t";
 					if (!function.ArgList.empty() && function.ArgList.back().Retval)
-						out << "Com::Retval(" << function.ArgList.back().Name << ") = ";
+					{
+						auto& retval = function.ArgList.back();
+						if (retval.Type.TypeEnum == TypeEnum::Int16)
+							out << "Com::CheckPointer(" << retval.Name << ") = ";
+						else
+							out << "Com::Retval(" << retval.Name << ") = ";
+					}
 					out << function.Name << "(";
 					first = true;
 					for (auto& argument : function.ArgList)
@@ -423,9 +510,19 @@ namespace Com
 							out << ", ";
 						first = false;
 						if (argument.Out)
-							out << "Com::InOut(" << argument.Name << ")";
+						{
+							if (argument.Type.TypeEnum == TypeEnum::Int16)
+								out << "Com::CheckPointer(" << argument.Name << ")";
+							else
+								out << "Com::InOut(" << argument.Name << ")";
+						}
 						else
-							out << "Com::In(" << argument.Name << ")";
+						{
+							if (argument.Type.TypeEnum == TypeEnum::Int16)
+								out << argument.Name;
+							else
+								out << "Com::In(" << argument.Name << ")";
+						}
 					}
 					out << ");" << std::endl
 						<< "\t\t\t}" << std::endl
@@ -443,23 +540,103 @@ namespace Com
 		{
 			for (auto& iface : interfaces)
 				WriteWrapper(iface);
+			for (auto& iface : interfaces)
+				WriteWrapperFunctions(iface);
 		}
 
 		void CodeGenerator::WriteWrapper(const Interface& iface)
 		{
 			out << "\ttemplate <typename Interface>" << std::endl
-				<< "\tclass " << iface.Name << "PtrT : public ";
-			if (iface.Base == "IUnknown" || iface.Base == "IDispatch")
-				out << "Com::Pointer<Interface>";
-			else
-				out << iface.Base << "PtrT<Interface>";
-			out << std::endl
+				<< "\tclass " << iface.Name << "PtrT : public " << GetWrapperBase(iface) << std::endl
 				<< "\t{" << std::endl
-				<< "\tpublic:" << std::endl;
-			//TODO: forward declare members.
-			out << "\t};" << std::endl
-				<< "\tusing " << iface.Name << "Ptr = " << iface.Name << "PtrT<" << iface.Name << ">;" << std::endl;
-			//TODO: define methods later
+				<< "\tpublic:" << std::endl
+				<< "\t\t" << iface.Name << "PtrT(Interface* value = nullptr);" << std::endl
+				<< "\t\t" << iface.Name << "PtrT<Interface>& operator=(Interface* value);" << std::endl
+				<< "\t\toperator " << iface.Name << "*() const;" << std::endl;
+			for (auto& function : iface.Functions)
+			{
+				if ((function.VtblOffset == 0 && function.IsDispatchOnly) ||
+					(function.VtblOffset >= iface.VtblOffset))
+				{
+					out << "\t\t";
+					if (!function.ArgList.empty() && function.ArgList.back().Retval)
+						WriteTypeAsRetval(function.ArgList.back().Type);
+					else
+						out << "void";
+					out << " " << function.Name << "(";
+					auto first = true;
+					for (auto& argument : function.ArgList)
+					{
+						if (argument.Retval)
+							break;
+						if (!first)
+							out << ", ";
+						first = false;
+						Write(argument);
+					}
+					out << ");" << std::endl;
+				}
+			}
+			out << "\t};" << std::endl;
+		}
+
+		void CodeGenerator::WriteComTypeInfo(const std::string& libraryName, const std::vector<Interface>& interfaces)
+		{
+			out << "namespace Com" << std::endl
+				<< "{" << std::endl;
+			for (auto& iface : interfaces)
+				WriteComTypeInfo(libraryName, iface);
+			out << "}" << std::endl;
+		}
+
+		void CodeGenerator::WriteComTypeInfo(const std::string& libraryName, const Interface& iface)
+		{
+			auto interfaceName = libraryName + "::" + iface.Name;
+			out << "\ttemplate <>" << std::endl
+				<< "\tclass TypeInfo<" << interfaceName << "*>" << std::endl
+				<< "\t{" << std::endl
+				<< "\tpublic:" << std::endl
+				<< "\t\tusing In = InValue<" << interfaceName << "*, " << interfaceName << "Ptr>;" << std::endl
+				<< "\t\tusing InOut = InOutValue<" << interfaceName << "*, " << interfaceName << "Ptr>;" << std::endl
+				<< "\t\tusing Retval = RetvalValue<" << interfaceName << "Ptr, " << interfaceName << "*>;" << std::endl
+				<< "\t};" << std::endl;
+		}
+
+		void CodeGenerator::WriteWrapperFunctions(const Interface& iface)
+		{
+			out << "\ttemplate <typename Interface>" << std::endl
+				<< "\tinline " << iface.Name << "PtrT<Interface>::" << iface.Name << "PtrT(Interface* value) : " << GetWrapperBase(iface) << "(value)" << std::endl
+				<< "\t{" << std::endl
+				<< "\t}" << std::endl
+				<< "\ttemplate <typename Interface>" << std::endl
+				<< "\tinline " << iface.Name << "PtrT<Interface>& " << iface.Name << "PtrT<Interface>::operator=(Interface* value)" << std::endl
+				<< "\t{" << std::endl
+				<< "\t\tusing Base = " << GetWrapperBase(iface) << ";" << std::endl
+				<< "\t\tBase::operator=(value);" << std::endl
+				<< "\t\treturn *this;" << std::endl
+				<< "\t}" << std::endl
+				<< "\ttemplate <typename Interface>" << std::endl
+				<< "\tinline " << iface.Name << "PtrT<Interface>::operator " << iface.Name << "*() const" << std::endl
+				<< "\t{" << std::endl
+				<< "\t\treturn p;" << std::endl
+				<< "\t}" << std::endl;
+			for (auto& function : iface.Functions)
+			{
+				if (function.VtblOffset == 0 && function.IsDispatchOnly)
+					WriteWrapperDispatch(iface.Name, function);
+				else if (function.VtblOffset >= iface.VtblOffset)
+					WriteWrapperFunction(iface.Name, function);
+			}
+		}
+
+		void CodeGenerator::WriteWrapperDispatch(const std::string& interfaceName, const Function& function)
+		{
+			//TODO: dispatch only implementation
+		}
+
+		void CodeGenerator::WriteWrapperFunction(const std::string& interfaceName, const Function& function)
+		{
+			//TODO:
 		}
 
 		std::string CodeGenerator::Format(const GUID& guid)
@@ -470,6 +647,29 @@ namespace Com
 			if (result != bufferSize)
 				throw std::runtime_error("Error formatting GUID");
 			return std::wstring_convert<std::codecvt_utf8<wchar_t>>().to_bytes(buffer).substr(1, 36);
+		}
+
+		std::string CodeGenerator::GetWrapperBase(const Interface& iface)
+		{
+			if (iface.Base == "IUnknown" || iface.Base == "IDispatch")
+				return "Com::Pointer<Interface>";
+			return iface.Base + "PtrT<Interface>";
+		}
+
+		std::string CodeGenerator::GetSmartPointer(const Type& type)
+		{
+			return IsStandardOle(type) ?
+				"Com::Pointer<" + type.CustomName + ">" :
+				type.CustomName + "Ptr";
+		}
+
+		bool CodeGenerator::IsStandardOle(const Type& type)
+		{
+			return type.CustomName == "IPicture" ||
+				type.CustomName == "IPictureDisp" ||
+				type.CustomName == "IFont" ||
+				type.CustomName == "IEnumVARIANT" ||
+				type.CustomName == "GUID";
 		}
 	}
 };
