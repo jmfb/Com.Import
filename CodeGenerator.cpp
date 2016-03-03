@@ -5,6 +5,8 @@
 #include <codecvt>
 #include <fstream>
 #include <algorithm>
+#include <chrono>
+#include <ctime>
 
 namespace Com
 {
@@ -30,7 +32,11 @@ namespace Com
 				return;
 			GenerateMain(library);
 			GenerateCoclasses(library);
-			//TODO: generate rc, def, manifest
+			GenerateDef(library);
+			GenerateResources(library);
+			GeneratePackages();
+			GenerateManifest(library);
+			//TODO: generate vcxproj
 		}
 
 		void CodeGenerator::GenerateMain(const Library& library)
@@ -43,29 +49,29 @@ namespace Com
 			out << std::endl
 				<< "extern \"C\" BOOL __stdcall DllMain(HINSTANCE instance, DWORD reason, void* reserved)" << std::endl
 				<< "{" << std::endl
-				<< "\tif (reason == DLL_PROCESS_ATTACH)" << std::endl
-				<< "\t\tCom::Module::GetInstance().Initialize(instance);" << std::endl
-				<< "\treturn TRUE;" << std::endl
+				<< "	if (reason == DLL_PROCESS_ATTACH)" << std::endl
+				<< "		Com::Module::GetInstance().Initialize(instance);" << std::endl
+				<< "	return TRUE;" << std::endl
 				<< "}" << std::endl
 				<< std::endl
 				<< "HRESULT __stdcall DllCanUnloadNow()" << std::endl
 				<< "{" << std::endl
-				<< "\treturn Com::Module::GetInstance().CanUnload() ? S_OK : S_FALSE;" << std::endl
+				<< "	return Com::Module::GetInstance().CanUnload() ? S_OK : S_FALSE;" << std::endl
 				<< "}" << std::endl
 				<< std::endl
 				<< "HRESULT __stdcall DllGetClassObject(REFCLSID rclsid, REFIID riid, void** ppvObject)" << std::endl
 				<< "{" << std::endl
-				<< "\treturn Com::ObjectList<" << std::endl;
+				<< "	return Com::ObjectList<" << std::endl;
 			auto first = true;
 			for (auto& coclass : library.Coclasses)
 			{
 				if (!first)
 					out << "," << std::endl;
 				first = false;
-				out << "\t\t" << library.Name << "::" << coclass.Name;
+				out << "		" << library.Name << "::" << coclass.Name;
 			}
 			out << std::endl
-				<< "\t>::Create(rclsid, riid, ppvObject);" << std::endl
+				<< "	>::Create(rclsid, riid, ppvObject);" << std::endl
 				<< "}" << std::endl;
 		}
 
@@ -88,10 +94,10 @@ namespace Com
 				<< std::endl
 				<< "namespace " << library.Name << std::endl
 				<< "{" << std::endl
-				<< "\tclass " << coclass.Name << " : public " << coclass.Name << "Coclass<" << coclass.Name << ">" << std::endl
-				<< "\t{" << std::endl
-				<< "\tpublic:" << std::endl
-				<< "\t};" << std::endl
+				<< "	class " << coclass.Name << " : public " << coclass.Name << "Coclass<" << coclass.Name << ">" << std::endl
+				<< "	{" << std::endl
+				<< "	public:" << std::endl
+				<< "	};" << std::endl
 				<< "}" << std::endl;
 		}
 
@@ -105,6 +111,198 @@ namespace Com
 				<< "namespace " << library.Name << std::endl
 				<< "{" << std::endl
 				<< "}" << std::endl;
+		}
+
+		void CodeGenerator::GenerateDef(const Library& library)
+		{
+			auto fileName = library.Name + ".def";
+			std::cout << "Generate module definition: " << fileName << std::endl;
+			std::ofstream out{ fileName.c_str() };
+			out << "LIBRARY \"" << GetLibraryOutputName(library) << "\"" << std::endl
+				<< "EXPORTS" << std::endl
+				<< "	DllCanUnloadNow private" << std::endl
+				<< "	DllGetClassObject private" << std::endl;
+		}
+
+		void CodeGenerator::GenerateResources(const Library& library)
+		{
+			auto rcFileName = library.Name + ".rc";
+			auto headerFileName = "resource.h";
+			std::cout << "Generate resources: " << rcFileName << "/" << headerFileName << std::endl;
+			std::ofstream out{ rcFileName.c_str() };
+
+			auto time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+			auto year = std::localtime(&time)->tm_year + 1900;
+
+			out << "// Microsoft Visual C++ generated resource script." << std::endl
+				<< "//" << std::endl
+				<< "#include \"resource.h\"" << std::endl
+				<< std::endl
+				<< "#define APSTUDIO_READONLY_SYMBOLS" << std::endl
+				<< "/////////////////////////////////////////////////////////////////////////////" << std::endl
+				<< "//" << std::endl
+				<< "// Generated from the TEXTINCLUDE 2 resource." << std::endl
+				<< "//" << std::endl
+				<< "#include \"winres.h\"" << std::endl
+				<< std::endl
+				<< "/////////////////////////////////////////////////////////////////////////////" << std::endl
+				<< "#undef APSTUDIO_READONLY_SYMBOLS" << std::endl
+				<< std::endl
+				<< "/////////////////////////////////////////////////////////////////////////////" << std::endl
+				<< "// English (United States) resources" << std::endl
+				<< std::endl
+				<< "#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)" << std::endl
+				<< "LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US" << std::endl
+				<< std::endl
+				<< "#ifdef APSTUDIO_INVOKED" << std::endl
+				<< "/////////////////////////////////////////////////////////////////////////////" << std::endl
+				<< "//" << std::endl
+				<< "// TEXTINCLUDE" << std::endl
+				<< "//" << std::endl
+				<< std::endl
+				<< "1 TEXTINCLUDE " << std::endl
+				<< "BEGIN" << std::endl
+				<< "    \"resource.h\\0\"" << std::endl
+				<< "END" << std::endl
+				<< std::endl
+				<< "2 TEXTINCLUDE " << std::endl
+				<< "BEGIN" << std::endl
+				<< "    \"#include \"\"winres.h\"\"\\r\\n\"" << std::endl
+				<< "    \"\\0\"" << std::endl
+				<< "END" << std::endl
+				<< std::endl
+				<< "3 TEXTINCLUDE " << std::endl
+				<< "BEGIN" << std::endl
+				<< "    \"1 TYPELIB \"\"" << GetLibraryOutputName(library) << ".tlb\"\"\\r\\n\"" << std::endl
+				<< "    \"\\0\"" << std::endl
+				<< "END" << std::endl
+				<< std::endl
+				<< "#endif    // APSTUDIO_INVOKED" << std::endl
+				<< std::endl
+				<< std::endl
+				<< "/////////////////////////////////////////////////////////////////////////////" << std::endl
+				<< "//" << std::endl
+				<< "// Version" << std::endl
+				<< "//" << std::endl
+				<< std::endl
+				<< "VS_VERSION_INFO VERSIONINFO" << std::endl
+				<< " FILEVERSION 1,0,0,1" << std::endl
+				<< " PRODUCTVERSION 1,0,0,1" << std::endl
+				<< " FILEFLAGSMASK 0x3fL" << std::endl
+				<< "#ifdef _DEBUG" << std::endl
+				<< " FILEFLAGS 0x1L" << std::endl
+				<< "#else" << std::endl
+				<< " FILEFLAGS 0x0L" << std::endl
+				<< "#endif" << std::endl
+				<< " FILEOS 0x40004L" << std::endl
+				<< " FILETYPE 0x2L" << std::endl
+				<< " FILESUBTYPE 0x0L" << std::endl
+				<< "BEGIN" << std::endl
+				<< "    BLOCK \"StringFileInfo\"" << std::endl
+				<< "    BEGIN" << std::endl
+				<< "        BLOCK \"040904b0\"" << std::endl
+				<< "        BEGIN" << std::endl
+				<< "            VALUE \"CompanyName\", \"TODO\"" << std::endl
+				<< "            VALUE \"FileDescription\", \"" << library.Name << "\"" << std::endl
+				<< "            VALUE \"FileVersion\", \"1.0.0.0\"" << std::endl
+				<< "            VALUE \"InternalName\", \"" << GetLibraryOutputName(library) << ".dll\"" << std::endl
+				<< "            VALUE \"LegalCopyright\", \"Copyright(C) " << year << "\"" << std::endl
+				<< "            VALUE \"OriginalFilename\", \"" << GetLibraryOutputName(library) << ".dll\"" << std::endl
+				<< "            VALUE \"ProductName\", \"" << library.Name << "\"" << std::endl
+				<< "            VALUE \"ProductVersion\", \"1.0.0.0\"" << std::endl
+				<< "        END" << std::endl
+				<< "    END" << std::endl
+				<< "    BLOCK \"VarFileInfo\"" << std::endl
+				<< "    BEGIN" << std::endl
+				<< "        VALUE \"Translation\", 0x409, 1200" << std::endl
+				<< "    END" << std::endl
+				<< "END" << std::endl
+				<< std::endl
+				<< "#endif    // English (United States) resources" << std::endl
+				<< "/////////////////////////////////////////////////////////////////////////////" << std::endl
+				<< std::endl
+				<< std::endl
+				<< std::endl
+				<< "#ifndef APSTUDIO_INVOKED" << std::endl
+				<< "/////////////////////////////////////////////////////////////////////////////" << std::endl
+				<< "//" << std::endl
+				<< "// Generated from the TEXTINCLUDE 3 resource." << std::endl
+				<< "//" << std::endl
+				<< "1 TYPELIB \"DSCommon.tlb\"" << std::endl
+				<< std::endl
+				<< "/////////////////////////////////////////////////////////////////////////////" << std::endl
+				<< "#endif    // not APSTUDIO_INVOKED" << std::endl
+				<< std::endl
+				<< std::endl;
+
+			std::ofstream{ headerFileName }
+				<< "//{{NO_DEPENDENCIES}}" << std::endl
+				<< "// Microsoft Visual C++ generated include file." << std::endl
+				<< "// Used by " << library.Name << ".rc" << std::endl
+				<< std::endl
+				<< "// Next default values for new objects" << std::endl
+				<< "// " << std::endl
+				<< "#ifdef APSTUDIO_INVOKED" << std::endl
+				<< "#ifndef APSTUDIO_READONLY_SYMBOLS" << std::endl
+				<< "#define _APS_NEXT_RESOURCE_VALUE        101" << std::endl
+				<< "#define _APS_NEXT_COMMAND_VALUE         40001" << std::endl
+				<< "#define _APS_NEXT_CONTROL_VALUE         1001" << std::endl
+				<< "#define _APS_NEXT_SYMED_VALUE           101" << std::endl
+				<< "#endif" << std::endl
+				<< "#endif" << std::endl;
+		}
+
+		void CodeGenerator::GeneratePackages()
+		{
+			auto fileName = "packages.config";
+			std::cout << "Generating packages: " << fileName << std::endl;
+			std::ofstream{ fileName }
+				<< "<?xml version=\"1.0\" encoding=\"utf-8\"?>" << std::endl
+				<< "<packages>" << std::endl
+				<< "	<package id=\"Jmfb.Com\" version=\"1.0.5\" targetFramework=\"native\" />" << std::endl
+				<< "</packages>" << std::endl;
+		}
+
+		void CodeGenerator::GenerateManifest(const Library& library)
+		{
+			auto fileName = GetLibraryOutputName(library) + ".manifest";
+			std::cout << "Generating manifest: " << fileName << std::endl;
+			std::ofstream out{ fileName.c_str() };
+			out << "<?xml version=\"1.0\" encoding=\"utf-8\" standalone=\"yes\"?>" << std::endl
+				<< "<assembly" << std::endl
+				<< "	xmlns=\"urn:schemas-microsoft-com:asm.v1\"" << std::endl
+				<< "	manifestVersion=\"1.0\">" << std::endl
+				<< "	<assemblyIdentity" << std::endl
+				<< "		type=\"win32\"" << std::endl
+				<< "		name=\"" << GetLibraryOutputName(library) << "\"" << std::endl
+				<< "		version=\"1.0.0.0\" />" << std::endl
+				<< "	<file name=\"" << GetLibraryOutputName(library) << ".dll\">" << std::endl;
+			for (auto& coclass : library.Coclasses)
+			{
+				out << "		<comClass" << std::endl
+					<< "			clsid=\"{" << Format(coclass.Clsid) << "}\"" << std::endl
+					<< "			threadingModel=\"Free\" />" << std::endl;
+			}
+			out << "		<typelib" << std::endl
+				<< "			tlbid=\"{" << Format(library.Libid) << "}\"" << std::endl
+				<< "			version=\"" << library.MajorVersion << "." << library.MinorVersion << "\"" << std::endl
+				<< "			helpdir=\"\" />" << std::endl
+				<< "	</file>" << std::endl;
+			for (auto& iface : library.Interfaces)
+			{
+				out << "	<comInterfaceExternalProxyStub" << std::endl
+					<< "		name=\"" << iface.Name << "\"" << std::endl
+					<< "		iid=\"{" << Format(iface.Iid) << "}\"" << std::endl
+					<< "		proxyStubClsid32=\"{00020424-0000-0000-C000-000000000046}\"" << std::endl
+					<< "		baseInterface=\"{" << Format(iface.BaseIid) << "}\"" << std::endl
+					<< "		tlbid=\"{" << Format(library.Libid) << "}\" />" << std::endl;
+			}
+			out << "</assembly>" << std::endl;
+		}
+
+		std::string CodeGenerator::GetLibraryOutputName(const Library& library)
+		{
+			return library.HeaderFileName.substr(0, library.HeaderFileName.rfind('.'));
 		}
 
 		void CodeGenerator::Write(const Library& library)
@@ -138,25 +336,25 @@ namespace Com
 
 		void CodeGenerator::Write(const Enum& enumeration)
 		{
-			out << "\tenum class " << enumeration.Name;
+			out << "	enum class " << enumeration.Name;
 			if (std::any_of(enumeration.Values.begin(), enumeration.Values.end(), &ShouldDisplayAsHex))
 				out << " : unsigned";
 			out << std::endl
-				<< "\t{" << std::endl;
+				<< "	{" << std::endl;
 			auto first = true;
 			for (auto& value : enumeration.Values)
 			{
 				if (!first)
 					out << "," << std::endl;
 				first = false;
-				out << "\t\t" << value.Name << " = ";
+				out << "		" << value.Name << " = ";
 				if (ShouldDisplayAsHex(value))
 					WriteHex(value.Value);
 				else
 					out << value.Value;
 			}
 			out << std::endl
-				<< "\t};" << std::endl;
+				<< "	};" << std::endl;
 		}
 
 		bool CodeGenerator::ShouldDisplayAsHex(const EnumValue& value)
@@ -172,9 +370,9 @@ namespace Com
 
 		void CodeGenerator::ForwardDeclare(const Interface& iface)
 		{
-			out << "\tclass __declspec(uuid(\"" << Format(iface.Iid) << "\")) " << iface.Name << ";" << std::endl
-				<< "\ttemplate <typename Interface> class " << iface.Name << "PtrT;" << std::endl
-				<< "\tusing " << iface.Name << "Ptr = " << iface.Name << "PtrT<" << iface.Name << ">;" << std::endl;
+			out << "	class __declspec(uuid(\"" << Format(iface.Iid) << "\")) " << iface.Name << ";" << std::endl
+				<< "	template <typename Interface> class " << iface.Name << "PtrT;" << std::endl
+				<< "	using " << iface.Name << "Ptr = " << iface.Name << "PtrT<" << iface.Name << ">;" << std::endl;
 		}
 
 		void CodeGenerator::Write(const std::vector<Alias>& aliases)
@@ -185,7 +383,7 @@ namespace Com
 
 		void CodeGenerator::Write(const Alias& alias)
 		{
-			out << "\tusing " << alias.NewName << " = " << alias.OldName << ";" << std::endl;
+			out << "	using " << alias.NewName << " = " << alias.OldName << ";" << std::endl;
 		}
 
 		void CodeGenerator::Write(const std::vector<Record>& records)
@@ -196,19 +394,19 @@ namespace Com
 
 		void CodeGenerator::Write(const Record& record)
 		{
-			out << "\t#pragma pack(push, " << record.Alignment << ")" << std::endl
-				<< "\tstruct __declspec(uuid(\"" << Format(record.Guid) << "\")) " << record.Name << std::endl
-				<< "\t{" << std::endl;
+			out << "	#pragma pack(push, " << record.Alignment << ")" << std::endl
+				<< "	struct __declspec(uuid(\"" << Format(record.Guid) << "\")) " << record.Name << std::endl
+				<< "	{" << std::endl;
 			for (auto& member : record.Members)
 			{
-				out << "\t\t";
+				out << "		";
 				WriteType(member.Type);
 				out << " " << member.Name;
 				WriteTypeSuffix(member.Type);
 				out << ";" << std::endl;
 			}
-			out << "\t};" << std::endl
-				<< "\t#pragma pack(pop)" << std::endl;
+			out << "	};" << std::endl
+				<< "	#pragma pack(pop)" << std::endl;
 		}
 
 		void CodeGenerator::Write(const std::vector<Interface>& interfaces)
@@ -219,9 +417,9 @@ namespace Com
 
 		void CodeGenerator::Write(const Interface& iface)
 		{
-			out << "\tclass __declspec(uuid(\"" << Format(iface.Iid) << "\")) " << iface.Name << " : public " << iface.Base << std::endl
-				<< "\t{" << std::endl
-				<< "\tpublic:" << std::endl;
+			out << "	class __declspec(uuid(\"" << Format(iface.Iid) << "\")) " << iface.Name << " : public " << iface.Base << std::endl
+				<< "	{" << std::endl
+				<< "	public:" << std::endl;
 			auto nextPlaceholderId = 1;
 			auto nextValidOffset = iface.VtblOffset;
 			for (auto& function : iface.Functions)
@@ -237,7 +435,7 @@ namespace Com
 
 				while (nextValidOffset < function.VtblOffset)
 				{
-					out << "\t\tvirtual HRESULT __stdcall _VtblGapPlaceholder" << nextPlaceholderId << "() { return E_NOTIMPL; }" << std::endl;
+					out << "		virtual HRESULT __stdcall _VtblGapPlaceholder" << nextPlaceholderId << "() { return E_NOTIMPL; }" << std::endl;
 					++nextPlaceholderId;
 					nextValidOffset += 4;
 				}
@@ -245,12 +443,12 @@ namespace Com
 				Write(function);
 				nextValidOffset += 4;
 			}
-			out << "\t};" << std::endl;
+			out << "	};" << std::endl;
 		}
 
 		void CodeGenerator::Write(const Function& function)
 		{
-			out << "\t\t";
+			out << "		";
 			if (function.IsDispatchOnly)
 				out << "//";
 			out << "virtual ";
@@ -279,7 +477,7 @@ namespace Com
 
 		void CodeGenerator::Write(const Identifier& identifier)
 		{
-			out << "\textern const ::GUID __declspec(selectany) " << identifier.Name << " = {";
+			out << "	extern const ::GUID __declspec(selectany) " << identifier.Name << " = {";
 			WriteHex(identifier.Guid.Data1);
 			out << ",";
 			WriteHex(identifier.Guid.Data2);
@@ -427,18 +625,18 @@ namespace Com
 
 		void CodeGenerator::Write(const Coclass& coclass)
 		{
-			out << "\ttemplate <typename Type>" << std::endl
-				<< "\tclass " << coclass.Name << "Coclass : public Com::Object<Type, &CLSID_" << coclass.Name;
+			out << "	template <typename Type>" << std::endl
+				<< "	class " << coclass.Name << "Coclass : public Com::Object<Type, &CLSID_" << coclass.Name;
 			for (auto& iface : coclass.Interfaces)
 				out << ", " << iface.Name;
 			out << ">" << std::endl
-				<< "\t{" << std::endl
-				<< "\tpublic:" << std::endl;
+				<< "	{" << std::endl
+				<< "	public:" << std::endl;
 			for (auto& iface : coclass.Interfaces)
 				WriteNativeFunctions(iface);
 			for (auto& iface : coclass.Interfaces)
 				WriteRawFunctions(iface);
-			out << "\t};" << std::endl;
+			out << "	};" << std::endl;
 		}
 
 		void CodeGenerator::WriteNativeFunctions(const Interface& iface)
@@ -447,7 +645,7 @@ namespace Com
 			{
 				if (function.VtblOffset >= iface.VtblOffset && function.Retval.TypeEnum == TypeEnum::Hresult)
 				{
-					out << "\t\tvirtual ";
+					out << "		virtual ";
 					if (!function.ArgList.empty() && function.ArgList.back().Retval)
 						WriteTypeAsRetval(function.ArgList.back().Type);
 					else
@@ -464,9 +662,9 @@ namespace Com
 						Write(argument);
 					}
 					out << ")" << std::endl
-						<< "\t\t{" << std::endl
-						<< "\t\t\tthrow Com::NotImplemented(__FUNCTION__);" << std::endl
-						<< "\t\t}" << std::endl;
+						<< "		{" << std::endl
+						<< "			throw Com::NotImplemented(__FUNCTION__);" << std::endl
+						<< "		}" << std::endl;
 				}
 			}
 		}
@@ -477,7 +675,7 @@ namespace Com
 			{
 				if (function.VtblOffset >= iface.VtblOffset && function.Retval.TypeEnum == TypeEnum::Hresult)
 				{
-					out << "\t\tHRESULT __stdcall raw_" << function.Name << "(";
+					out << "		HRESULT __stdcall raw_" << function.Name << "(";
 					auto first = true;
 					for (auto& argument : function.ArgList)
 					{
@@ -488,10 +686,10 @@ namespace Com
 						out << " " << argument.Name;
 					}
 					out << ") final" << std::endl
-						<< "\t\t{" << std::endl
-						<< "\t\t\ttry" << std::endl
-						<< "\t\t\t{" << std::endl
-						<< "\t\t\t\t";
+						<< "		{" << std::endl
+						<< "			try" << std::endl
+						<< "			{" << std::endl
+						<< "				";
 					if (!function.ArgList.empty() && function.ArgList.back().Retval)
 					{
 						auto& retval = function.ArgList.back();
@@ -525,13 +723,13 @@ namespace Com
 						}
 					}
 					out << ");" << std::endl
-						<< "\t\t\t}" << std::endl
-						<< "\t\t\tcatch (...)" << std::endl
-						<< "\t\t\t{" << std::endl
-						<< "\t\t\t\treturn Com::HandleException();" << std::endl
-						<< "\t\t\t}" << std::endl
-						<< "\t\t\treturn S_OK;" << std::endl
-						<< "\t\t}" << std::endl;
+						<< "			}" << std::endl
+						<< "			catch (...)" << std::endl
+						<< "			{" << std::endl
+						<< "				return Com::HandleException();" << std::endl
+						<< "			}" << std::endl
+						<< "			return S_OK;" << std::endl
+						<< "		}" << std::endl;
 				}
 			}
 		}
@@ -546,19 +744,19 @@ namespace Com
 
 		void CodeGenerator::WriteWrapper(const Interface& iface)
 		{
-			out << "\ttemplate <typename Interface>" << std::endl
-				<< "\tclass " << iface.Name << "PtrT : public " << GetWrapperBase(iface) << std::endl
-				<< "\t{" << std::endl
-				<< "\tpublic:" << std::endl
-				<< "\t\t" << iface.Name << "PtrT(Interface* value = nullptr);" << std::endl
-				<< "\t\t" << iface.Name << "PtrT<Interface>& operator=(Interface* value);" << std::endl
-				<< "\t\toperator " << iface.Name << "*() const;" << std::endl;
+			out << "	template <typename Interface>" << std::endl
+				<< "	class " << iface.Name << "PtrT : public " << GetWrapperBase(iface) << std::endl
+				<< "	{" << std::endl
+				<< "	public:" << std::endl
+				<< "		" << iface.Name << "PtrT(Interface* value = nullptr);" << std::endl
+				<< "		" << iface.Name << "PtrT<Interface>& operator=(Interface* value);" << std::endl
+				<< "		operator " << iface.Name << "*() const;" << std::endl;
 			for (auto& function : iface.Functions)
 			{
 				if ((function.VtblOffset == 0 && function.IsDispatchOnly) ||
 					(function.VtblOffset >= iface.VtblOffset))
 				{
-					out << "\t\t";
+					out << "		";
 					if (!function.ArgList.empty() && function.ArgList.back().Retval)
 						WriteTypeAsRetval(function.ArgList.back().Type);
 					else
@@ -577,7 +775,7 @@ namespace Com
 					out << ");" << std::endl;
 				}
 			}
-			out << "\t};" << std::endl;
+			out << "	};" << std::endl;
 		}
 
 		void CodeGenerator::WriteComTypeInfo(const std::string& libraryName, const std::vector<Interface>& interfaces)
@@ -592,34 +790,34 @@ namespace Com
 		void CodeGenerator::WriteComTypeInfo(const std::string& libraryName, const Interface& iface)
 		{
 			auto interfaceName = libraryName + "::" + iface.Name;
-			out << "\ttemplate <>" << std::endl
-				<< "\tclass TypeInfo<" << interfaceName << "*>" << std::endl
-				<< "\t{" << std::endl
-				<< "\tpublic:" << std::endl
-				<< "\t\tusing In = InValue<" << interfaceName << "*, " << interfaceName << "Ptr>;" << std::endl
-				<< "\t\tusing InOut = InOutValue<" << interfaceName << "*, " << interfaceName << "Ptr>;" << std::endl
-				<< "\t\tusing Retval = RetvalValue<" << interfaceName << "Ptr, " << interfaceName << "*>;" << std::endl
-				<< "\t};" << std::endl;
+			out << "	template <>" << std::endl
+				<< "	class TypeInfo<" << interfaceName << "*>" << std::endl
+				<< "	{" << std::endl
+				<< "	public:" << std::endl
+				<< "		using In = InValue<" << interfaceName << "*, " << interfaceName << "Ptr>;" << std::endl
+				<< "		using InOut = InOutValue<" << interfaceName << "*, " << interfaceName << "Ptr>;" << std::endl
+				<< "		using Retval = RetvalValue<" << interfaceName << "Ptr, " << interfaceName << "*>;" << std::endl
+				<< "	};" << std::endl;
 		}
 
 		void CodeGenerator::WriteWrapperFunctions(const Interface& iface)
 		{
-			out << "\ttemplate <typename Interface>" << std::endl
-				<< "\tinline " << iface.Name << "PtrT<Interface>::" << iface.Name << "PtrT(Interface* value) : " << GetWrapperBase(iface) << "(value)" << std::endl
-				<< "\t{" << std::endl
-				<< "\t}" << std::endl
-				<< "\ttemplate <typename Interface>" << std::endl
-				<< "\tinline " << iface.Name << "PtrT<Interface>& " << iface.Name << "PtrT<Interface>::operator=(Interface* value)" << std::endl
-				<< "\t{" << std::endl
-				<< "\t\tusing Base = " << GetWrapperBase(iface) << ";" << std::endl
-				<< "\t\tBase::operator=(value);" << std::endl
-				<< "\t\treturn *this;" << std::endl
-				<< "\t}" << std::endl
-				<< "\ttemplate <typename Interface>" << std::endl
-				<< "\tinline " << iface.Name << "PtrT<Interface>::operator " << iface.Name << "*() const" << std::endl
-				<< "\t{" << std::endl
-				<< "\t\treturn p;" << std::endl
-				<< "\t}" << std::endl;
+			out << "	template <typename Interface>" << std::endl
+				<< "	inline " << iface.Name << "PtrT<Interface>::" << iface.Name << "PtrT(Interface* value) : " << GetWrapperBase(iface) << "(value)" << std::endl
+				<< "	{" << std::endl
+				<< "	}" << std::endl
+				<< "	template <typename Interface>" << std::endl
+				<< "	inline " << iface.Name << "PtrT<Interface>& " << iface.Name << "PtrT<Interface>::operator=(Interface* value)" << std::endl
+				<< "	{" << std::endl
+				<< "		using Base = " << GetWrapperBase(iface) << ";" << std::endl
+				<< "		Base::operator=(value);" << std::endl
+				<< "		return *this;" << std::endl
+				<< "	}" << std::endl
+				<< "	template <typename Interface>" << std::endl
+				<< "	inline " << iface.Name << "PtrT<Interface>::operator " << iface.Name << "*() const" << std::endl
+				<< "	{" << std::endl
+				<< "		return p;" << std::endl
+				<< "	}" << std::endl;
 			for (auto& function : iface.Functions)
 			{
 				if (function.VtblOffset == 0 && function.IsDispatchOnly)
@@ -636,8 +834,8 @@ namespace Com
 
 		void CodeGenerator::WriteWrapperFunction(const std::string& interfaceName, const Function& function)
 		{
-			out << "\ttemplate <typename Interface>" << std::endl
-				<< "\tinline ";
+			out << "	template <typename Interface>" << std::endl
+				<< "	inline ";
 			auto hasRetval = !function.ArgList.empty() && function.ArgList.back().Retval;
 			if (hasRetval)
 				WriteTypeAsRetval(function.ArgList.back().Type);
@@ -655,16 +853,16 @@ namespace Com
 				Write(argument);
 			}
 			out << ")" << std::endl
-				<< "\t{" << std::endl;
+				<< "	{" << std::endl;
 			if (hasRetval)
 			{
-				out << "\t\t";
+				out << "		";
 				WriteTypeAsRetval(function.ArgList.back().Type);
 				out << " retval";
 				WriteDefault(function.ArgList.back().Type);
 				out << ";" << std::endl;
 			}
-			out << "\t\t";
+			out << "		";
 			if (function.Retval.TypeEnum == TypeEnum::Hresult)
 				out << "auto hr = ";
 			out << "p->";
@@ -687,10 +885,10 @@ namespace Com
 			}
 			out << ");" << std::endl;
 			if (function.Retval.TypeEnum == TypeEnum::Hresult)
-				out << "\t\tCom::CheckError(hr, __FUNCTION__, \"\");" << std::endl;
+				out << "		Com::CheckError(hr, __FUNCTION__, \"\");" << std::endl;
 			if (hasRetval)
-				out << "\t\treturn retval;" << std::endl;
-			out << "\t}" << std::endl;
+				out << "		return retval;" << std::endl;
+			out << "	}" << std::endl;
 		}
 
 		void CodeGenerator::WriteDefault(const Type& type)

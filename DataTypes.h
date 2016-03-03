@@ -106,6 +106,7 @@ namespace Com
 			std::string Prefix;
 			std::string Name;
 			std::string Base;
+			GUID BaseIid;
 			bool SupportsDispatch;
 			unsigned int VtblOffset;
 			std::vector<Function> Functions;
@@ -130,6 +131,9 @@ namespace Com
 		{
 			std::string Name;
 			std::string HeaderFileName;
+			GUID Libid;
+			WORD MajorVersion;
+			WORD MinorVersion;
 			std::vector<std::string> References;
 			std::vector<Identifier> Identifiers;
 			std::vector<Enum> Enums;

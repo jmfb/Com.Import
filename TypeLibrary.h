@@ -21,6 +21,8 @@ namespace Com
 			TypeLibrary& operator=(const TypeLibrary& rhs) = delete;
 
 			const GUID& GetId() const;
+			WORD GetMajorVersion() const;
+			WORD GetMinorVersion() const;
 			std::string GetName() const;
 			UINT GetTypeInfoCount() const;
 			Pointer<ITypeInfo> GetTypeInfo(UINT index) const;

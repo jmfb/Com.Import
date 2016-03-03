@@ -30,6 +30,11 @@ namespace Com
 			static void GenerateCoclasses(const Library& library);
 			static void GenerateCoclassHeader(const Library& library, const Coclass& coclass);
 			static void GenerateCoclassSource(const Library& library, const Coclass& coclass);
+			static void GenerateDef(const Library& library);
+			static void GenerateResources(const Library& library);
+			static void GeneratePackages();
+			static void GenerateManifest(const Library& library);
+			static std::string GetLibraryOutputName(const Library& library);
 			void Write(const Library& library);
 			void Write(const std::vector<Enum>& enums);
 			void Write(const Enum& enumeration);

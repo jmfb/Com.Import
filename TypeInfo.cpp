@@ -177,10 +177,11 @@ namespace Com
 
 		Interface TypeInfo::ToInterface() const
 		{
-			Interface result{ GetId(), "IID_", GetName(), "IUnknown", false, 12,{} };
+			Interface result{ GetId(), "IID_", GetName(), "IUnknown", IID_IUnknown, false, 12,{} };
 			if (GetTypeKind() == TKIND_DISPATCH)
 			{
 				result.Base = "IDispatch";
+				result.BaseIid = IID_IDispatch;
 				result.SupportsDispatch = true;
 				result.VtblOffset += 16;
 				ULONG flags = 0;
@@ -209,6 +210,7 @@ namespace Com
 
 			TypeInfo baseTypeInfo{ baseType };
 			value.Base = baseTypeInfo.GetName();
+			value.BaseIid = baseTypeInfo.GetId();
 			value.VtblOffset = baseTypeInfo.attributes->cbSizeVft;
 			if (baseTypeInfo.libraryName != libraryName && baseTypeInfo.libraryName != "stdole")
 				value.Name = baseTypeInfo.libraryName + "::" + value.Name;

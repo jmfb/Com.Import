@@ -29,6 +29,16 @@ namespace Com
 			return attributes->guid;
 		}
 
+		WORD TypeLibrary::GetMajorVersion() const
+		{
+			return attributes->wMajorVerNum;
+		}
+
+		WORD TypeLibrary::GetMinorVersion() const
+		{
+			return attributes->wMinorVerNum;
+		}
+
 		std::string TypeLibrary::GetName() const
 		{
 			std::string name;

@@ -62,6 +62,9 @@ namespace Com
 			Library library;
 			library.Name = typeLibrary.GetName();
 			library.HeaderFileName = GetTitle(typeLibraryFileName) + ".h";
+			library.Libid = typeLibrary.GetId();
+			library.MajorVersion = typeLibrary.GetMajorVersion();
+			library.MinorVersion = typeLibrary.GetMinorVersion();
 			library.Identifiers.push_back({ "LIBID_" + typeLibrary.GetName(), typeLibrary.GetId() });
 
 			auto count = typeLibrary.GetTypeInfoCount();
