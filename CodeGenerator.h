@@ -28,6 +28,7 @@ namespace Com
 		private:
 			void Write(const std::vector<Enum>& enums);
 			void Write(const Enum& enumeration);
+			static bool ShouldDisplayAsHex(const EnumValue& value);
 			void ForwardDeclare(const std::vector<Interface>& interfaces);
 			void ForwardDeclare(const Interface& iface);
 			void Write(const std::vector<Alias>& aliases);

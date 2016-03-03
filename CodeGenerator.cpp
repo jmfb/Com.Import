@@ -4,6 +4,7 @@
 #include <locale>
 #include <codecvt>
 #include <fstream>
+#include <algorithm>
 
 namespace Com
 {
@@ -56,7 +57,10 @@ namespace Com
 
 		void CodeGenerator::Write(const Enum& enumeration)
 		{
-			out << "\tenum class " << enumeration.Name << std::endl
+			out << "\tenum class " << enumeration.Name;
+			if (std::any_of(enumeration.Values.begin(), enumeration.Values.end(), &ShouldDisplayAsHex))
+				out << " : unsigned";
+			out << std::endl
 				<< "\t{" << std::endl;
 			auto first = true;
 			for (auto& value : enumeration.Values)
@@ -65,13 +69,18 @@ namespace Com
 					out << "," << std::endl;
 				first = false;
 				out << "\t\t" << value.Name << " = ";
-				if (value.Value & 0xffff0000)
+				if (ShouldDisplayAsHex(value))
 					WriteHex(value.Value);
 				else
 					out << value.Value;
 			}
 			out << std::endl
 				<< "\t};" << std::endl;
+		}
+
+		bool CodeGenerator::ShouldDisplayAsHex(const EnumValue& value)
+		{
+			return (value.Value & 0xf0000000) == 0x80000000;
 		}
 
 		void CodeGenerator::ForwardDeclare(const std::vector<Interface>& interfaces)
@@ -184,7 +193,7 @@ namespace Com
 
 		void CodeGenerator::Write(const Identifier& identifier)
 		{
-			out << "\textern \"C\" const ::GUID __declspec(selectany) " << identifier.Name << " = {";
+			out << "\textern const ::GUID __declspec(selectany) " << identifier.Name << " = {";
 			WriteHex(identifier.Guid.Data1);
 			out << ",";
 			WriteHex(identifier.Guid.Data2);
