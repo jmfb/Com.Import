@@ -125,7 +125,8 @@ namespace Com
 			CheckError(hr, __FUNCTION__, "GetRefTypeInfo");
 
 			TypeInfo referenceTypeInfo{ referenceType };
-			if (referenceTypeInfo.GetLibraryName() != libraryName)
+			auto referenceLibraryName = referenceTypeInfo.GetLibraryName();
+			if (referenceLibraryName != libraryName && referenceLibraryName != "stdole")
 				Loader::AddReference(referenceTypeInfo.GetLibrary());
 			return referenceTypeInfo.ToInterface();
 		}
