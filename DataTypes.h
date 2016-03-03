@@ -31,13 +31,6 @@ namespace Com
 			std::string NewName;
 		};
 
-		struct Coclass
-		{
-			std::string Name;
-			GUID Clsid;
-			std::vector<std::string> Interfaces;
-		};
-
 		enum class TypeEnum
 		{
 			Enum,
@@ -116,6 +109,13 @@ namespace Com
 			bool SupportsDispatch;
 			unsigned int VtblOffset;
 			std::vector<Function> Functions;
+		};
+
+		struct Coclass
+		{
+			std::string Name;
+			GUID Clsid;
+			std::vector<Interface> Interfaces;
 		};
 
 		struct Record

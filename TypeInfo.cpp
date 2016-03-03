@@ -14,11 +14,7 @@ namespace Com
 			CheckError(hr, __FUNCTION__, "QueryInterface");
 			hr = typeInfo->GetTypeAttr(&attributes);
 			CheckError(hr, __FUNCTION__, "GetTypeAttr");
-			Pointer<ITypeLib> typeLibrary;
-			UINT index = 0;
-			hr = typeInfo->GetContainingTypeLib(&typeLibrary, &index);
-			CheckError(hr, __FUNCTION__, "GetContainingTypeLib");
-			hr = typeLibrary->GetDocumentation(-1, Get(libraryName), nullptr, nullptr, nullptr);
+			hr = GetLibrary()->GetDocumentation(-1, Get(libraryName), nullptr, nullptr, nullptr);
 			CheckError(hr, __FUNCTION__, "GetDocumentation");
 		}
 
@@ -39,6 +35,20 @@ namespace Com
 			auto hr = typeInfo->GetDocumentation(-1, Get(name), nullptr, nullptr, nullptr);
 			CheckError(hr, __FUNCTION__, "GetDocumentation");
 			return name;
+		}
+
+		const std::string& TypeInfo::GetLibraryName() const
+		{
+			return libraryName;
+		}
+
+		Pointer<ITypeLib> TypeInfo::GetLibrary() const
+		{
+			Pointer<ITypeLib> library;
+			UINT index = 0;
+			auto hr = typeInfo->GetContainingTypeLib(&library, &index);
+			CheckError(hr, __FUNCTION__, "GetContainingTypeLib");
+			return library;
 		}
 
 		TYPEKIND TypeInfo::GetTypeKind() const
@@ -100,8 +110,24 @@ namespace Com
 		{
 			Coclass result{ GetName(), GetId(),{} };
 			for (auto index = 0u; index < attributes->cImplTypes; ++index)
-				result.Interfaces.push_back(GetInterfaceName(index));
+				result.Interfaces.push_back(GetInterface(index));
 			return result;
+		}
+
+		Interface TypeInfo::GetInterface(UINT index) const
+		{
+			HREFTYPE referenceHandle = 0;
+			auto hr = typeInfo->GetRefTypeOfImplType(index, &referenceHandle);
+			CheckError(hr, __FUNCTION__, "GetRefTypeOfImplType");
+
+			Pointer<ITypeInfo> referenceType;
+			hr = typeInfo->GetRefTypeInfo(referenceHandle, &referenceType);
+			CheckError(hr, __FUNCTION__, "GetRefTypeInfo");
+
+			TypeInfo referenceTypeInfo{ referenceType };
+			if (referenceTypeInfo.GetLibraryName() != libraryName)
+				Loader::AddReference(referenceTypeInfo.GetLibrary());
+			return referenceTypeInfo.ToInterface();
 		}
 
 		std::string TypeInfo::GetInterfaceName(UINT index) const

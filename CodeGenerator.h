@@ -13,16 +13,17 @@ namespace Com
 		{
 		private:
 			std::ostream& out;
+			bool implement;
 
 		public:
-			CodeGenerator(std::ostream& out);
+			CodeGenerator(std::ostream& out, bool implement);
 			CodeGenerator(const CodeGenerator& rhs) = delete;
 			~CodeGenerator() = default;
 
 			CodeGenerator& operator=(const CodeGenerator& rhs) = delete;
 
-			static void Generate(const LoadLibraryResult& result);
-			static void Generate(const Library& library);
+			static void Generate(const LoadLibraryResult& result, bool implement);
+			static void Generate(const Library& library, bool implement);
 			void Write(const Library& library);
 
 		private:
@@ -40,8 +41,16 @@ namespace Com
 			void Write(const Function& function);
 			void Write(const std::vector<Identifier>& identifiers);
 			void Write(const Identifier& identifier);
+			void Write(const Parameter& parameter);
 			void WriteType(const Type& type);
+			void WriteTypeAsRetval(const Type& type);
 			void WriteTypeSuffix(const Type& type);
+			void Write(const std::vector<Coclass>& coclasses);
+			void Write(const Coclass& coclass);
+			void WriteNativeFunctions(const Interface& iface);
+			void WriteRawFunctions(const Interface& iface);
+			void WriteWrappers(const std::vector<Interface>& interfaces);
+			void WriteWrapper(const Interface& iface);
 			static std::string Format(const GUID& guid);
 
 			template <typename Integer>

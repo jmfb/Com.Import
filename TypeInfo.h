@@ -23,10 +23,13 @@ namespace Com
 
 			const GUID& GetId() const;
 			std::string GetName() const;
+			const std::string& GetLibraryName() const;
+			Pointer<ITypeLib> GetLibrary() const;
 			TYPEKIND GetTypeKind() const;
 			Enum ToEnum() const;
 			Alias ToAlias() const;
 			Coclass ToCoclass() const;
+			Interface GetInterface(UINT index) const;
 			std::string GetInterfaceName(UINT index) const;
 			Record ToRecord() const;
 			Interface ToInterface() const;
