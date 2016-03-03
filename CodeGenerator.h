@@ -60,6 +60,7 @@ namespace Com
 			void WriteWrapperFunctions(const Interface& iface);
 			void WriteWrapperDispatch(const std::string& interfaceName, const Function& function);
 			void WriteWrapperFunction(const std::string& interfaceName, const Function& function);
+			void WriteDefault(const Type& type);
 			static std::string Format(const GUID& guid);
 			static std::string GetWrapperBase(const Interface& iface);
 			static std::string GetSmartPointer(const Type& type);

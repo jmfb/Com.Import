@@ -30,7 +30,7 @@ namespace Com
 				return;
 			GenerateMain(library);
 			GenerateCoclasses(library);
-			//TODO: generate rc, def
+			//TODO: generate rc, def, manifest
 		}
 
 		void CodeGenerator::GenerateMain(const Library& library)
@@ -636,7 +636,91 @@ namespace Com
 
 		void CodeGenerator::WriteWrapperFunction(const std::string& interfaceName, const Function& function)
 		{
-			//TODO:
+			out << "\ttemplate <typename Interface>" << std::endl
+				<< "\tinline ";
+			auto hasRetval = !function.ArgList.empty() && function.ArgList.back().Retval;
+			if (hasRetval)
+				WriteTypeAsRetval(function.ArgList.back().Type);
+			else
+				out << "void";
+			out << " " << interfaceName << "PtrT<Interface>::" << function.Name << "(";
+			auto first = true;
+			for (auto& argument : function.ArgList)
+			{
+				if (argument.Retval)
+					break;
+				if (!first)
+					out << ", ";
+				first = false;
+				Write(argument);
+			}
+			out << ")" << std::endl
+				<< "\t{" << std::endl;
+			if (hasRetval)
+			{
+				out << "\t\t";
+				WriteTypeAsRetval(function.ArgList.back().Type);
+				out << " retval";
+				WriteDefault(function.ArgList.back().Type);
+				out << ";" << std::endl;
+			}
+			out << "\t\t";
+			if (function.Retval.TypeEnum == TypeEnum::Hresult)
+				out << "auto hr = ";
+			out << "p->";
+			if (implement)
+				out << "raw_";
+			out << function.Name << "(";
+			first = true;
+			for (auto& argument : function.ArgList)
+			{
+				if (!first)
+					out << ", ";
+				first = false;
+				if (argument.In && argument.Out)
+					out << "Com::PutRef(";
+				else if (argument.In)
+					out << "Com::Put(";
+				else
+					out << "Com::Get(";
+				out << argument.Name << ")";
+			}
+			out << ");" << std::endl;
+			if (function.Retval.TypeEnum == TypeEnum::Hresult)
+				out << "\t\tCom::CheckError(hr, __FUNCTION__, \"\");" << std::endl;
+			if (hasRetval)
+				out << "\t\treturn retval;" << std::endl;
+			out << "\t}" << std::endl;
+		}
+
+		void CodeGenerator::WriteDefault(const Type& type)
+		{
+			switch (type.TypeEnum)
+			{
+			case TypeEnum::Int:
+			case TypeEnum::Int8:
+			case TypeEnum::Int16:
+			case TypeEnum::Int32:
+			case TypeEnum::Int64:
+			case TypeEnum::UInt:
+			case TypeEnum::UInt8:
+			case TypeEnum::UInt16:
+			case TypeEnum::UInt32:
+			case TypeEnum::UInt64:
+			case TypeEnum::Float:
+			case TypeEnum::Double:
+			case TypeEnum::Error:
+				out << " = 0";
+				break;
+
+			case TypeEnum::Bool:
+				out << " = false";
+				break;
+
+			case TypeEnum::Hresult:
+				out << " = S_OK";
+				break;
+			}
 		}
 
 		std::string CodeGenerator::Format(const GUID& guid)
