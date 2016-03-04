@@ -4,7 +4,7 @@
 	<metadata>
 		<id>jmfb-com-import</id>
 		<title>Jmfb.Com.Import</title>
-		<version>0.0.1</version>
+		<version>0.0.2</version>
 		<authors>Jacob Buysse</authors>
 		<owners>Jacob Buysse</owners>
 		<summary>C++ COM Import Command Line Utility</summary>
@@ -15,13 +15,30 @@ C++ COM Import Command Line Utility
 Command line utility for importing COM type libraries.
 Generates C++ header files.
 
-Usage
------
+Usage #1 - Generate importing header files
+------------------------------------------
 `> com.import example.tlb`
 `Importing: example.tlb`
 `Importing: C:\Program Files (x86)\Common Files\System\ado\msado21.tlb`
 `Importing: C:\Windows\SysWOW64\msvbvm60.dll`
 `Generating header: example.h`
+`Generating header: msado21.h`
+`Generating header: msvbvm60.h`
+
+Usage #2 - Implement a type library
+-----------------------------------
+`> com.import example.tlb /implement`
+`Importing: example.tlb`
+`Importing: C:\Program Files (x86)\Common Files\System\ado\msado21.tlb`
+`Importing: C:\Windows\SysWOW64\msvbvm60.dll`
+`Generating header: example.h`
+`Generating source: main.cpp`
+`Generating header: Foo.h`
+`Generating source: Foo.cpp`
+`Generating module definition: example.def`
+`Generating resources: example.rc/resource.h`
+`Generating packages: packages.config`
+`Generating manifest: example.manifest`
 `Generating header: msado21.h`
 `Generating header: msvbvm60.h`
 		</description>
@@ -30,7 +47,10 @@ Usage
 		<copyright>© 2016 Jacob Buysse</copyright>
 		<licenseUrl>http://www.gnu.org/licenses/gpl.html</licenseUrl>
 		<requireLicenseAcceptance>false</requireLicenseAcceptance>
-		<releaseNotes>Initial beta release.</releaseNotes>
+		<releaseNotes>
+			Added smart pointer wrappers for import.
+			Added coclass wrappers for implementing a type library.
+		</releaseNotes>
 	</metadata>
 	<files>
 		<file src="Release\Com.Import.exe" target="tools" />
