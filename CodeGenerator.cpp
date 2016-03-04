@@ -228,7 +228,7 @@ namespace Com
 				<< "//" << std::endl
 				<< "// Generated from the TEXTINCLUDE 3 resource." << std::endl
 				<< "//" << std::endl
-				<< "1 TYPELIB \"DSCommon.tlb\"" << std::endl
+				<< "1 TYPELIB \"" << GetLibraryOutputName(library) << ".tlb\"" << std::endl
 				<< std::endl
 				<< "/////////////////////////////////////////////////////////////////////////////" << std::endl
 				<< "#endif    // not APSTUDIO_INVOKED" << std::endl
@@ -632,14 +632,19 @@ namespace Com
 			out << ">" << std::endl
 				<< "	{" << std::endl
 				<< "	public:" << std::endl;
+			std::map<std::string, int> countByFunction;
 			for (auto& iface : coclass.Interfaces)
-				WriteNativeFunctions(iface);
+				for (auto& function : iface.Functions)
+					if (function.VtblOffset >= iface.VtblOffset && function.Retval.TypeEnum == TypeEnum::Hresult)
+						++countByFunction[function.Name];
 			for (auto& iface : coclass.Interfaces)
-				WriteRawFunctions(iface);
+				WriteNativeFunctions(iface, countByFunction);
+			for (auto& iface : coclass.Interfaces)
+				WriteRawFunctions(iface, countByFunction);
 			out << "	};" << std::endl;
 		}
 
-		void CodeGenerator::WriteNativeFunctions(const Interface& iface)
+		void CodeGenerator::WriteNativeFunctions(const Interface& iface, std::map<std::string, int>& countByFunction)
 		{
 			for (auto& function : iface.Functions)
 			{
@@ -650,7 +655,10 @@ namespace Com
 						WriteTypeAsRetval(function.ArgList.back().Type);
 					else
 						out << "void";
-					out << " " << function.Name << "(";
+					out << " ";
+					if (countByFunction[function.Name] > 1)
+						out << iface.Name << "_";
+					out << function.Name << "(";
 					auto first = true;
 					for (auto& argument : function.ArgList)
 					{
@@ -669,13 +677,16 @@ namespace Com
 			}
 		}
 
-		void CodeGenerator::WriteRawFunctions(const Interface& iface)
+		void CodeGenerator::WriteRawFunctions(const Interface& iface, std::map<std::string, int>& countByFunction)
 		{
 			for (auto& function : iface.Functions)
 			{
 				if (function.VtblOffset >= iface.VtblOffset && function.Retval.TypeEnum == TypeEnum::Hresult)
 				{
-					out << "		HRESULT __stdcall raw_" << function.Name << "(";
+					out << "		HRESULT __stdcall ";
+					if (countByFunction[function.Name] > 1)
+						out << iface.Name << "::";
+					out << "raw_" << function.Name << "(";
 					auto first = true;
 					for (auto& argument : function.ArgList)
 					{
@@ -698,6 +709,8 @@ namespace Com
 						else
 							out << "Com::Retval(" << retval.Name << ") = ";
 					}
+					if (countByFunction[function.Name] > 1)
+						out << iface.Name << "_";
 					out << function.Name << "(";
 					first = true;
 					for (auto& argument : function.ArgList)

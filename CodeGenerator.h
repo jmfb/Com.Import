@@ -4,6 +4,7 @@
 #include <iomanip>
 #include <string>
 #include <type_traits>
+#include <map>
 
 namespace Com
 {
@@ -56,8 +57,8 @@ namespace Com
 			void WriteTypeSuffix(const Type& type);
 			void Write(const std::vector<Coclass>& coclasses);
 			void Write(const Coclass& coclass);
-			void WriteNativeFunctions(const Interface& iface);
-			void WriteRawFunctions(const Interface& iface);
+			void WriteNativeFunctions(const Interface& iface, std::map<std::string, int>& countByFunction);
+			void WriteRawFunctions(const Interface& iface, std::map<std::string, int>& countByFunction);
 			void WriteWrappers(const std::vector<Interface>& interfaces);
 			void WriteWrapper(const Interface& iface);
 			void WriteComTypeInfo(const std::string& libraryName, const std::vector<Interface>& interfaces);
