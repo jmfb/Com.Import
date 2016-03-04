@@ -7,6 +7,8 @@
 #include <algorithm>
 #include <chrono>
 #include <ctime>
+#include <map>
+#include <set>
 
 namespace Com
 {
@@ -625,26 +627,88 @@ namespace Com
 
 		void CodeGenerator::Write(const Coclass& coclass)
 		{
-			out << "	template <typename Type>" << std::endl
-				<< "	class " << coclass.Name << "Coclass : public Com::Object<Type, &CLSID_" << coclass.Name;
-			for (auto& iface : coclass.Interfaces)
-				out << ", " << iface.Name;
-			out << ">" << std::endl
-				<< "	{" << std::endl
-				<< "	public:" << std::endl;
 			std::map<std::string, int> countByFunction;
 			for (auto& iface : coclass.Interfaces)
 				for (auto& function : iface.Functions)
 					if (function.VtblOffset >= iface.VtblOffset && function.Retval.TypeEnum == TypeEnum::Hresult)
 						++countByFunction[function.Name];
+			std::set<std::string> conflictingInterfaces;
 			for (auto& iface : coclass.Interfaces)
-				WriteNativeFunctions(iface, countByFunction);
+				if (std::any_of(iface.Functions.begin(), iface.Functions.end(), [&](auto f){ return countByFunction[f.Name] > 1; }))
+					conflictingInterfaces.insert(iface.Name);
 			for (auto& iface : coclass.Interfaces)
-				WriteRawFunctions(iface, countByFunction);
+			{
+				if (conflictingInterfaces.find(iface.Name) != conflictingInterfaces.end())
+				{
+					out << "	class __declspec(uuid(\"" << Format(iface.Iid) << "\")) " << iface.Name << "_" << coclass.Name << " : public " << iface.Name << std::endl
+						<< "	{" << std::endl
+						<< "	public:" << std::endl;
+					for (auto& function : iface.Functions)
+					{
+						if ((function.VtblOffset == 0 && function.IsDispatchOnly) || (function.VtblOffset >= iface.VtblOffset))
+						{
+							out << "		virtual ";
+							WriteType(function.Retval);
+							out << " __stdcall " << iface.Name << "_raw_" << function.Name << "(";
+							auto first = true;
+							for (auto& argument : function.ArgList)
+							{
+								if (!first)
+									out << ", ";
+								first = false;
+								WriteType(argument.Type);
+								out << " " << argument.Name;
+							}
+							out << ") = 0;" << std::endl;
+							out << "		";
+							WriteType(function.Retval);
+							out << " __stdcall raw_" << function.Name << "(";
+							first = true;
+							for (auto& argument : function.ArgList)
+							{
+								if (!first)
+									out << ", ";
+								first = false;
+								WriteType(argument.Type);
+								out << " " << argument.Name;
+							}
+							out << ") final" << std::endl
+								<< "		{" << std::endl
+								<< "			return " << iface.Name << "_raw_" << function.Name << "(";
+							first = true;
+							for (auto& argument : function.ArgList)
+							{
+								if (!first)
+									out << ", ";
+								first = false;
+								out << argument.Name;
+							}
+							out << ");" << std::endl
+								<< "		}" << std::endl;
+						}
+					}
+					out << "	};" << std::endl;
+				}
+			}
+			out << "	template <typename Type>" << std::endl
+				<< "	class " << coclass.Name << "Coclass : public Com::Object<Type, &CLSID_" << coclass.Name;
+			for (auto& iface : coclass.Interfaces)
+			{
+				out << ", " << iface.Name;
+				if (conflictingInterfaces.find(iface.Name) != conflictingInterfaces.end())
+					out << "_" << coclass.Name;
+			}
+			out << ">" << std::endl
+				<< "	{" << std::endl
+				<< "	public:" << std::endl;
+			for (auto& iface : coclass.Interfaces)
+				WriteNativeFunctions(iface, conflictingInterfaces.find(iface.Name) != conflictingInterfaces.end());
+			for (auto& iface : coclass.Interfaces)
+				WriteRawFunctions(iface, conflictingInterfaces.find(iface.Name) != conflictingInterfaces.end());
 			out << "	};" << std::endl;
 		}
 
-		void CodeGenerator::WriteNativeFunctions(const Interface& iface, std::map<std::string, int>& countByFunction)
+		void CodeGenerator::WriteNativeFunctions(const Interface& iface, bool interfaceSpecificFunctions)
 		{
 			for (auto& function : iface.Functions)
 			{
@@ -656,7 +720,7 @@ namespace Com
 					else
 						out << "void";
 					out << " ";
-					if (countByFunction[function.Name] > 1)
+					if (interfaceSpecificFunctions)
 						out << iface.Name << "_";
 					out << function.Name << "(";
 					auto first = true;
@@ -677,15 +741,15 @@ namespace Com
 			}
 		}
 
-		void CodeGenerator::WriteRawFunctions(const Interface& iface, std::map<std::string, int>& countByFunction)
+		void CodeGenerator::WriteRawFunctions(const Interface& iface, bool interfaceSpecificFunctions)
 		{
 			for (auto& function : iface.Functions)
 			{
 				if (function.VtblOffset >= iface.VtblOffset && function.Retval.TypeEnum == TypeEnum::Hresult)
 				{
 					out << "		HRESULT __stdcall ";
-					if (countByFunction[function.Name] > 1)
-						out << iface.Name << "::";
+					if (interfaceSpecificFunctions)
+						out << iface.Name << "_";
 					out << "raw_" << function.Name << "(";
 					auto first = true;
 					for (auto& argument : function.ArgList)
@@ -709,7 +773,7 @@ namespace Com
 						else
 							out << "Com::Retval(" << retval.Name << ") = ";
 					}
-					if (countByFunction[function.Name] > 1)
+					if (interfaceSpecificFunctions)
 						out << iface.Name << "_";
 					out << function.Name << "(";
 					first = true;
