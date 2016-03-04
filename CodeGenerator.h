@@ -4,11 +4,19 @@
 #include <iomanip>
 #include <string>
 #include <type_traits>
+#include <set>
 
 namespace Com
 {
 	namespace Import
 	{
+		enum class FunctionDefinition
+		{
+			Abstract,
+			Prototype,
+			Definition
+		};
+
 		class CodeGenerator
 		{
 		private:
@@ -34,6 +42,7 @@ namespace Com
 			static void GenerateResources(const Library& library);
 			static void GeneratePackages();
 			static void GenerateManifest(const Library& library);
+			static void GenerateSolution(const LoadLibraryResult& result);
 			static void GenerateProject(const LoadLibraryResult& result);
 			static void GenerateProjectFilters(const LoadLibraryResult& result);
 			static std::string GetLibraryOutputName(const Library& library);
@@ -58,7 +67,11 @@ namespace Com
 			void WriteTypeSuffix(const Type& type);
 			void Write(const std::vector<Coclass>& coclasses);
 			void Write(const Coclass& coclass);
-			void WriteNativeFunctions(const Interface& iface, bool interfaceSpecificFunctions);
+			void WriteNativeFunctions(
+				const Interface& iface,
+				bool interfaceSpecificFunctions,
+				FunctionDefinition definition,
+				const std::string& className);
 			void WriteRawFunctions(const Interface& iface, bool interfaceSpecificFunctions);
 			void WriteWrappers(const std::vector<Interface>& interfaces);
 			void WriteWrapper(const Interface& iface);
@@ -72,6 +85,7 @@ namespace Com
 			static std::string GetWrapperBase(const Interface& iface);
 			static std::string GetSmartPointer(const Type& type);
 			static bool IsStandardOle(const Type& type);
+			static std::set<std::string> GetConflictingInterfaces(const Coclass& coclass);
 
 			template <typename Integer>
 			void WriteHex(Integer value)

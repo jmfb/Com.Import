@@ -26,6 +26,7 @@ namespace Com
 				Generate(reference, false);
 			if (!implement)
 				return;
+			GenerateSolution(result);
 			GenerateProject(result);
 			GenerateProjectFilters(result);
 		}
@@ -101,8 +102,15 @@ namespace Com
 				<< "{" << std::endl
 				<< "	class " << coclass.Name << " : public " << coclass.Name << "Coclass<" << coclass.Name << ">" << std::endl
 				<< "	{" << std::endl
-				<< "	public:" << std::endl
-				<< "	};" << std::endl
+				<< "	public:" << std::endl;
+			auto conflictingInterfaces = GetConflictingInterfaces(coclass);
+			for (auto& iface : coclass.Interfaces)
+				CodeGenerator(out, true).WriteNativeFunctions(
+					iface,
+					conflictingInterfaces.find(iface.Name) != conflictingInterfaces.end(),
+					FunctionDefinition::Prototype,
+					coclass.Name);
+			out << "	};" << std::endl
 				<< "}" << std::endl;
 		}
 
@@ -114,8 +122,15 @@ namespace Com
 			out << "#include \"" << coclass.Name << ".h\"" << std::endl
 				<< std::endl
 				<< "namespace " << library.Name << std::endl
-				<< "{" << std::endl
-				<< "}" << std::endl;
+				<< "{" << std::endl;
+			auto conflictingInterfaces = GetConflictingInterfaces(coclass);
+			for (auto& iface : coclass.Interfaces)
+				CodeGenerator(out, true).WriteNativeFunctions(
+					iface,
+					conflictingInterfaces.find(iface.Name) != conflictingInterfaces.end(),
+					FunctionDefinition::Definition,
+					coclass.Name);
+			out << "}" << std::endl;
 		}
 
 		void CodeGenerator::GenerateDef(const Library& library)
@@ -303,6 +318,34 @@ namespace Com
 					<< "		tlbid=\"{" << Format(library.Libid) << "}\" />" << std::endl;
 			}
 			out << "</assembly>" << std::endl;
+		}
+
+		void CodeGenerator::GenerateSolution(const LoadLibraryResult& result)
+		{
+			auto fileName = result.PrimaryLibrary.Name + ".sln";
+			std::ofstream{ fileName.c_str() }
+				<< "Microsoft Visual Studio Solution File, Format Version 12.00" << std::endl
+				<< "# Visual Studio 14" << std::endl
+				<< "VisualStudioVersion = 14.0.24720.0" << std::endl
+				<< "MinimumVisualStudioVersion = 10.0.40219.1" << std::endl
+				<< "Project(\"{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}\") = \"" << result.PrimaryLibrary.Name
+					<< "\", \"" << result.PrimaryLibrary.Name << ".vcxproj\", \"{" << Format(result.PrimaryLibrary.Libid) << "}\"" << std::endl
+				<< "EndProject" << std::endl
+				<< "Global" << std::endl
+				<< "	GlobalSection(SolutionConfigurationPlatforms) = preSolution" << std::endl
+				<< "		Debug|x86 = Debug|x86" << std::endl
+				<< "		Release|x86 = Release|x86" << std::endl
+				<< "	EndGlobalSection" << std::endl
+				<< "	GlobalSection(ProjectConfigurationPlatforms) = postSolution" << std::endl
+				<< "		{" << Format(result.PrimaryLibrary.Libid) << "}.Debug|x86.ActiveCfg = Debug|Win32" << std::endl
+				<< "		{" << Format(result.PrimaryLibrary.Libid) << "}.Debug|x86.Build.0 = Debug|Win32" << std::endl
+				<< "		{" << Format(result.PrimaryLibrary.Libid) << "}.Release|x86.ActiveCfg = Release|Win32" << std::endl
+				<< "		{" << Format(result.PrimaryLibrary.Libid) << "}.Release|x86.Build.0 = Release|Win32" << std::endl
+				<< "	EndGlobalSection" << std::endl
+				<< "	GlobalSection(SolutionProperties) = preSolution" << std::endl
+				<< "		HideSolutionNode = FALSE" << std::endl
+				<< "	EndGlobalSection" << std::endl
+				<< "EndGlobal" << std::endl;
 		}
 
 		void CodeGenerator::GenerateProject(const LoadLibraryResult& result)
@@ -805,15 +848,7 @@ namespace Com
 
 		void CodeGenerator::Write(const Coclass& coclass)
 		{
-			std::map<std::string, int> countByFunction;
-			for (auto& iface : coclass.Interfaces)
-				for (auto& function : iface.Functions)
-					if (function.VtblOffset >= iface.VtblOffset && function.Retval.TypeEnum == TypeEnum::Hresult)
-						++countByFunction[function.Name];
-			std::set<std::string> conflictingInterfaces;
-			for (auto& iface : coclass.Interfaces)
-				if (std::any_of(iface.Functions.begin(), iface.Functions.end(), [&](auto f){ return countByFunction[f.Name] > 1; }))
-					conflictingInterfaces.insert(iface.Name);
+			auto conflictingInterfaces = GetConflictingInterfaces(coclass);
 			for (auto& iface : coclass.Interfaces)
 			{
 				if (conflictingInterfaces.find(iface.Name) != conflictingInterfaces.end())
@@ -880,24 +915,38 @@ namespace Com
 				<< "	{" << std::endl
 				<< "	public:" << std::endl;
 			for (auto& iface : coclass.Interfaces)
-				WriteNativeFunctions(iface, conflictingInterfaces.find(iface.Name) != conflictingInterfaces.end());
+				WriteNativeFunctions(
+					iface,
+					conflictingInterfaces.find(iface.Name) != conflictingInterfaces.end(),
+					FunctionDefinition::Abstract,
+					coclass.Name);
 			for (auto& iface : coclass.Interfaces)
 				WriteRawFunctions(iface, conflictingInterfaces.find(iface.Name) != conflictingInterfaces.end());
 			out << "	};" << std::endl;
 		}
 
-		void CodeGenerator::WriteNativeFunctions(const Interface& iface, bool interfaceSpecificFunctions)
+		void CodeGenerator::WriteNativeFunctions(
+			const Interface& iface,
+			bool interfaceSpecificFunctions,
+			FunctionDefinition definition,
+			const std::string& className)
 		{
 			for (auto& function : iface.Functions)
 			{
 				if (function.VtblOffset >= iface.VtblOffset && function.Retval.TypeEnum == TypeEnum::Hresult)
 				{
-					out << "		virtual ";
+					out << "	";
+					if (definition != FunctionDefinition::Definition)
+						out << "	";
+					if (definition == FunctionDefinition::Abstract)
+						out << "virtual ";
 					if (!function.ArgList.empty() && function.ArgList.back().Retval)
 						WriteTypeAsRetval(function.ArgList.back().Type);
 					else
 						out << "void";
 					out << " ";
+					if (definition == FunctionDefinition::Definition)
+						out << className << "::";
 					if (interfaceSpecificFunctions)
 						out << iface.Name << "_";
 					out << function.Name << "(";
@@ -911,10 +960,23 @@ namespace Com
 						first = false;
 						Write(argument);
 					}
-					out << ")" << std::endl
-						<< "		{" << std::endl
-						<< "			throw Com::NotImplemented(__FUNCTION__);" << std::endl
-						<< "		}" << std::endl;
+					out << ")";
+					switch (definition)
+					{
+					case FunctionDefinition::Abstract:
+						out << " = 0;" << std::endl;
+						break;
+					case FunctionDefinition::Prototype:
+						out << " final;" << std::endl;
+						break;
+					case FunctionDefinition::Definition:
+						out << std::endl
+							<< "	{" << std::endl
+							<< "		throw Com::NotImplemented(__FUNCTION__);" << std::endl
+							<< "	}" << std::endl
+							<< std::endl;
+						break;
+					}
 				}
 			}
 		}
@@ -1209,6 +1271,20 @@ namespace Com
 				type.CustomName == "IFont" ||
 				type.CustomName == "IEnumVARIANT" ||
 				type.CustomName == "GUID";
+		}
+
+		std::set<std::string> CodeGenerator::GetConflictingInterfaces(const Coclass& coclass)
+		{
+			std::map<std::string, int> countByFunction;
+			for (auto& iface : coclass.Interfaces)
+				for (auto& function : iface.Functions)
+					if (function.VtblOffset >= iface.VtblOffset && function.Retval.TypeEnum == TypeEnum::Hresult)
+						++countByFunction[function.Name];
+			std::set<std::string> conflictingInterfaces;
+			for (auto& iface : coclass.Interfaces)
+				if (std::any_of(iface.Functions.begin(), iface.Functions.end(), [&](auto f){ return countByFunction[f.Name] > 1; }))
+					conflictingInterfaces.insert(iface.Name);
+			return conflictingInterfaces;
 		}
 	}
 };
