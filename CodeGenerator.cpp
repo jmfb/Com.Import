@@ -24,6 +24,10 @@ namespace Com
 			Generate(result.PrimaryLibrary, implement);
 			for (auto& reference : result.ReferencedLibraries)
 				Generate(reference, false);
+			if (!implement)
+				return;
+			GenerateProject(result);
+			GenerateProjectFilters(result);
 		}
 
 		void CodeGenerator::Generate(const Library& library, bool implement)
@@ -38,7 +42,6 @@ namespace Com
 			GenerateResources(library);
 			GeneratePackages();
 			GenerateManifest(library);
-			//TODO: generate vcxproj
 		}
 
 		void CodeGenerator::GenerateMain(const Library& library)
@@ -300,6 +303,181 @@ namespace Com
 					<< "		tlbid=\"{" << Format(library.Libid) << "}\" />" << std::endl;
 			}
 			out << "</assembly>" << std::endl;
+		}
+
+		void CodeGenerator::GenerateProject(const LoadLibraryResult& result)
+		{
+			auto fileName = result.PrimaryLibrary.Name + ".vcxproj";
+			std::cout << "Generating project file: " << fileName << std::endl;
+			std::ofstream out{ fileName.c_str() };
+			out << "<?xml version=\"1.0\" encoding=\"utf-8\"?>" << std::endl
+				<< "<Project DefaultTargets=\"Build\" ToolsVersion=\"14.0\" xmlns=\"http://schemas.microsoft.com/developer/msbuild/2003\">" << std::endl
+				<< "  <ItemGroup Label=\"ProjectConfigurations\">" << std::endl
+				<< "    <ProjectConfiguration Include=\"Debug|Win32\">" << std::endl
+				<< "      <Configuration>Debug</Configuration>" << std::endl
+				<< "      <Platform>Win32</Platform>" << std::endl
+				<< "    </ProjectConfiguration>" << std::endl
+				<< "    <ProjectConfiguration Include=\"Release|Win32\">" << std::endl
+				<< "      <Configuration>Release</Configuration>" << std::endl
+				<< "      <Platform>Win32</Platform>" << std::endl
+				<< "    </ProjectConfiguration>" << std::endl
+				<< "  </ItemGroup>" << std::endl
+				<< "  <PropertyGroup Label=\"Globals\">" << std::endl
+				<< "    <ProjectGuid>{" << Format(result.PrimaryLibrary.Libid) << "}</ProjectGuid>" << std::endl
+				<< "    <Keyword>Win32Proj</Keyword>" << std::endl
+				<< "    <RootNamespace>" << result.PrimaryLibrary.Name << "</RootNamespace>" << std::endl
+				<< "    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>" << std::endl
+				<< "  </PropertyGroup>" << std::endl
+				<< "  <Import Project=\"$(VCTargetsPath)\\Microsoft.Cpp.Default.props\" />" << std::endl
+				<< "  <PropertyGroup Condition=\"'$(Configuration)|$(Platform)'=='Debug|Win32'\" Label=\"Configuration\">" << std::endl
+				<< "    <ConfigurationType>DynamicLibrary</ConfigurationType>" << std::endl
+				<< "    <UseDebugLibraries>true</UseDebugLibraries>" << std::endl
+				<< "    <PlatformToolset>v140</PlatformToolset>" << std::endl
+				<< "    <CharacterSet>MultiByte</CharacterSet>" << std::endl
+				<< "  </PropertyGroup>" << std::endl
+				<< "  <PropertyGroup Condition=\"'$(Configuration)|$(Platform)'=='Release|Win32'\" Label=\"Configuration\">" << std::endl
+				<< "    <ConfigurationType>DynamicLibrary</ConfigurationType>" << std::endl
+				<< "    <UseDebugLibraries>false</UseDebugLibraries>" << std::endl
+				<< "    <PlatformToolset>v140</PlatformToolset>" << std::endl
+				<< "    <WholeProgramOptimization>true</WholeProgramOptimization>" << std::endl
+				<< "    <CharacterSet>MultiByte</CharacterSet>" << std::endl
+				<< "  </PropertyGroup>" << std::endl
+				<< "  <Import Project=\"$(VCTargetsPath)\\Microsoft.Cpp.props\" />" << std::endl
+				<< "  <PropertyGroup Condition=\"'$(Configuration)|$(Platform)'=='Debug|Win32'\">" << std::endl
+				<< "    <LinkIncremental>true</LinkIncremental>" << std::endl
+				<< "    <TargetName>" << GetLibraryOutputName(result.PrimaryLibrary) << "</TargetName>" << std::endl
+				<< "    <GenerateManifest>true</GenerateManifest>" << std::endl
+				<< "  </PropertyGroup>" << std::endl
+				<< "  <PropertyGroup Condition=\"'$(Configuration)|$(Platform)'=='Release|Win32'\">" << std::endl
+				<< "    <LinkIncremental>false</LinkIncremental>" << std::endl
+				<< "    <TargetName>" << GetLibraryOutputName(result.PrimaryLibrary) << "</TargetName>" << std::endl
+				<< "    <GenerateManifest>false</GenerateManifest>" << std::endl
+				<< "  </PropertyGroup>" << std::endl
+				<< "  <ItemDefinitionGroup Condition=\"'$(Configuration)|$(Platform)'=='Debug|Win32'\">" << std::endl
+				<< "    <ClCompile>" << std::endl
+				<< "      <WarningLevel>Level3</WarningLevel>" << std::endl
+				<< "      <Optimization>Disabled</Optimization>" << std::endl
+				<< "      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>" << std::endl
+				<< "      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>" << std::endl
+				<< "    </ClCompile>" << std::endl
+				<< "    <Link>" << std::endl
+				<< "      <SubSystem>Windows</SubSystem>" << std::endl
+				<< "      <GenerateDebugInformation>true</GenerateDebugInformation>" << std::endl
+				<< "      <ModuleDefinitionFile>" << result.PrimaryLibrary.Name << ".def</ModuleDefinitionFile>" << std::endl
+				<< "      <EnableUAC>false</EnableUAC>" << std::endl
+				<< "    </Link>" << std::endl
+				<< "    <Manifest>" << std::endl
+				<< "      <AdditionalManifestFiles>" << GetLibraryOutputName(result.PrimaryLibrary) << ".manifest</AdditionalManifestFiles>" << std::endl
+				<< "    </Manifest>" << std::endl
+				<< "  </ItemDefinitionGroup>" << std::endl
+				<< "  <ItemDefinitionGroup Condition=\"'$(Configuration)|$(Platform)'=='Release|Win32'\">" << std::endl
+				<< "    <ClCompile>" << std::endl
+				<< "      <WarningLevel>Level3</WarningLevel>" << std::endl
+				<< "      <Optimization>MaxSpeed</Optimization>" << std::endl
+				<< "      <FunctionLevelLinking>true</FunctionLevelLinking>" << std::endl
+				<< "      <IntrinsicFunctions>true</IntrinsicFunctions>" << std::endl
+				<< "      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>" << std::endl
+				<< "      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>" << std::endl
+				<< "    </ClCompile>" << std::endl
+				<< "    <Link>" << std::endl
+				<< "      <SubSystem>Windows</SubSystem>" << std::endl
+				<< "      <EnableCOMDATFolding>true</EnableCOMDATFolding>" << std::endl
+				<< "      <OptimizeReferences>true</OptimizeReferences>" << std::endl
+				<< "      <ModuleDefinitionFile>" << result.PrimaryLibrary.Name << ".def</ModuleDefinitionFile>" << std::endl
+				<< "    </Link>" << std::endl
+				<< "    <Manifest>" << std::endl
+				<< "      <AdditionalManifestFiles>" << GetLibraryOutputName(result.PrimaryLibrary) << ".manifest</AdditionalManifestFiles>" << std::endl
+				<< "    </Manifest>" << std::endl
+				<< "  </ItemDefinitionGroup>" << std::endl
+				<< "  <ItemGroup>" << std::endl
+				<< "    <ClInclude Include=\"" << result.PrimaryLibrary.HeaderFileName << "\" />" << std::endl;
+			for (auto& library : result.ReferencedLibraries)
+				out << "    <ClInclude Include=\"" << library.HeaderFileName << "\" />" << std::endl;
+			for (auto& coclass : result.PrimaryLibrary.Coclasses)
+				out << "    <ClInclude Include=\"" << coclass.Name << ".h\" />" << std::endl;
+			out << "    <ClInclude Include=\"resource.h\" />" << std::endl
+				<< "  </ItemGroup>" << std::endl
+				<< "  <ItemGroup>" << std::endl
+				<< "    <Manifest Include=\"" << GetLibraryOutputName(result.PrimaryLibrary) << ".manifest\" />" << std::endl
+				<< "  </ItemGroup>" << std::endl
+				<< "  <ItemGroup>" << std::endl
+				<< "    <None Include=\"" << GetLibraryOutputName(result.PrimaryLibrary) << ".tlb\" />" << std::endl
+				<< "    <None Include=\"" << result.PrimaryLibrary.Name << ".def\" />" << std::endl
+				<< "    <None Include=\"packages.config\" />" << std::endl
+				<< "  </ItemGroup>" << std::endl
+				<< "  <ItemGroup>" << std::endl;
+			for (auto& coclass : result.PrimaryLibrary.Coclasses)
+				out << "    <ClCompile Include=\"" << coclass.Name << ".cpp\" />" << std::endl;
+			out << "    <ClCompile Include=\"main.cpp\" />" << std::endl
+				<< "  </ItemGroup>" << std::endl
+				<< "  <ItemGroup>" << std::endl
+				<< "    <ResourceCompile Include=\"" << result.PrimaryLibrary.Name << ".rc\" />" << std::endl
+				<< "  </ItemGroup>" << std::endl
+				<< "  <Import Project=\"$(VCTargetsPath)\\Microsoft.Cpp.targets\" />" << std::endl
+				<< "</Project>" << std::endl;
+		}
+
+		void CodeGenerator::GenerateProjectFilters(const LoadLibraryResult& result)
+		{
+			auto fileName = result.PrimaryLibrary.Name + ".vcxproj.filters";
+			std::cout << "Generating project filters: " << fileName << std::endl;
+			std::ofstream out{ fileName.c_str() };
+			out << "<?xml version=\"1.0\" encoding=\"utf-8\"?>" << std::endl
+				<< "<Project ToolsVersion=\"4.0\" xmlns=\"http://schemas.microsoft.com/developer/msbuild/2003\">" << std::endl
+				<< "  <ItemGroup>" << std::endl
+				<< "    <ClInclude Include=\"resource.h\">" << std::endl
+				<< "      <Filter>Resources</Filter>" << std::endl
+				<< "    </ClInclude>" << std::endl
+				<< "    <ClInclude Include=\"" << result.PrimaryLibrary.HeaderFileName << "\">" << std::endl
+				<< "      <Filter>Imports</Filter>" << std::endl
+				<< "    </ClInclude>" << std::endl;
+			for (auto& library : result.ReferencedLibraries)
+				out << "    <ClInclude Include=\"" << library.HeaderFileName << "\">" << std::endl
+					<< "      <Filter>Imports</Filter>" << std::endl
+					<< "    </ClInclude>" << std::endl;
+			for (auto& coclass : result.PrimaryLibrary.Coclasses)
+				out << "    <ClInclude Include=\"" << coclass.Name << ".h\">" << std::endl
+					<< "      <Filter>Classes</Filter>" << std::endl
+					<< "    </ClInclude>" << std::endl;
+			out << "  </ItemGroup>" << std::endl
+				<< "  <ItemGroup>" << std::endl
+				<< "    <None Include=\"packages.config\" />" << std::endl
+				<< "    <None Include=\"" << GetLibraryOutputName(result.PrimaryLibrary) << ".tlb\">" << std::endl
+				<< "      <Filter>Resources</Filter>" << std::endl
+				<< "    </None>" << std::endl
+				<< "    <None Include=\"" << result.PrimaryLibrary.Name << ".def\">" << std::endl
+				<< "      <Filter>Resources</Filter>" << std::endl
+				<< "    </None>" << std::endl
+				<< "  </ItemGroup>" << std::endl
+				<< "  <ItemGroup>" << std::endl
+				<< "    <ClCompile Include=\"main.cpp\" />" << std::endl;
+			for (auto& coclass : result.PrimaryLibrary.Coclasses)
+				out << "    <ClCompile Include=\"" << coclass.Name << ".cpp\">" << std::endl
+					<< "      <Filter>Classes</Filter>" << std::endl
+					<< "    </ClCompile>" << std::endl;
+			out << "  </ItemGroup>" << std::endl
+				<< "  <ItemGroup>" << std::endl
+				<< "    <Filter Include=\"Classes\">" << std::endl
+				<< "      <UniqueIdentifier>{1a045a97-b4c4-44aa-8d30-334dddbc898d}</UniqueIdentifier>" << std::endl
+				<< "    </Filter>" << std::endl
+				<< "    <Filter Include=\"Imports\">" << std::endl
+				<< "      <UniqueIdentifier>{2bb3859c-3647-4c7f-a525-60ce09efb0f9}</UniqueIdentifier>" << std::endl
+				<< "    </Filter>" << std::endl
+				<< "    <Filter Include=\"Resources\">" << std::endl
+				<< "      <UniqueIdentifier>{d8988015-03d0-49f0-b3ac-49f515ce5289}</UniqueIdentifier>" << std::endl
+				<< "    </Filter>" << std::endl
+				<< "  </ItemGroup>" << std::endl
+				<< "  <ItemGroup>" << std::endl
+				<< "    <Manifest Include=\"" << GetLibraryOutputName(result.PrimaryLibrary) << ".manifest\">" << std::endl
+				<< "      <Filter>Resources</Filter>" << std::endl
+				<< "    </Manifest>" << std::endl
+				<< "  </ItemGroup>" << std::endl
+				<< "  <ItemGroup>" << std::endl
+				<< "    <ResourceCompile Include=\"" << result.PrimaryLibrary.Name << ".rc\">" << std::endl
+				<< "      <Filter>Resources</Filter>" << std::endl
+				<< "    </ResourceCompile>" << std::endl
+				<< "  </ItemGroup>" << std::endl
+				<< "</Project>" << std::endl;
 		}
 
 		std::string CodeGenerator::GetLibraryOutputName(const Library& library)

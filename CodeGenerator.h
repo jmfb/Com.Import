@@ -34,6 +34,8 @@ namespace Com
 			static void GenerateResources(const Library& library);
 			static void GeneratePackages();
 			static void GenerateManifest(const Library& library);
+			static void GenerateProject(const LoadLibraryResult& result);
+			static void GenerateProjectFilters(const LoadLibraryResult& result);
 			static std::string GetLibraryOutputName(const Library& library);
 			void Write(const Library& library);
 			void Write(const std::vector<Enum>& enums);
