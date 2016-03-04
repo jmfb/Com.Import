@@ -1024,7 +1024,9 @@ namespace Com
 
 		bool CodeGenerator::IsStandardOle(const Type& type)
 		{
-			return type.CustomName == "IPicture" ||
+			return type.CustomName == "IUnknown" ||
+				type.CustomName == "IDispatch" ||
+				type.CustomName == "IPicture" ||
 				type.CustomName == "IPictureDisp" ||
 				type.CustomName == "IFont" ||
 				type.CustomName == "IEnumVARIANT" ||
