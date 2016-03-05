@@ -36,10 +36,28 @@
       <Filter>Importer</Filter>
     </ClCompile>
     <ClCompile Include="GuidFormatter.cpp">
-      <Filter>Generator</Filter>
+      <Filter>Formatters</Filter>
     </ClCompile>
     <ClCompile Include="TypeFormatter.cpp">
-      <Filter>Generator</Filter>
+      <Filter>Formatters</Filter>
+    </ClCompile>
+    <ClCompile Include="EnumFormatter.cpp">
+      <Filter>Formatters</Filter>
+    </ClCompile>
+    <ClCompile Include="AliasFormatter.cpp">
+      <Filter>Formatters</Filter>
+    </ClCompile>
+    <ClCompile Include="InterfaceFormatter.cpp">
+      <Filter>Formatters</Filter>
+    </ClCompile>
+    <ClCompile Include="RecordFormatter.cpp">
+      <Filter>Formatters</Filter>
+    </ClCompile>
+    <ClCompile Include="IdentifierFormatter.cpp">
+      <Filter>Formatters</Filter>
+    </ClCompile>
+    <ClCompile Include="FunctionFormatter.cpp">
+      <Filter>Formatters</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -52,7 +70,7 @@
     <Filter Include="TypeLibrary">
       <UniqueIdentifier>{04bca9db-c0d3-43e9-81af-079264fa5614}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Generator">
+    <Filter Include="Formatters">
       <UniqueIdentifier>{fe12aa58-f1a8-4c2c-9cb4-ec4cb525f2a9}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
@@ -127,13 +145,31 @@
       <Filter>TypeLibrary</Filter>
     </ClInclude>
     <ClInclude Include="HexFormatter.h">
-      <Filter>Generator</Filter>
+      <Filter>Formatters</Filter>
     </ClInclude>
     <ClInclude Include="GuidFormatter.h">
-      <Filter>Generator</Filter>
+      <Filter>Formatters</Filter>
     </ClInclude>
     <ClInclude Include="TypeFormatter.h">
-      <Filter>Generator</Filter>
+      <Filter>Formatters</Filter>
+    </ClInclude>
+    <ClInclude Include="EnumFormatter.h">
+      <Filter>Formatters</Filter>
+    </ClInclude>
+    <ClInclude Include="AliasFormatter.h">
+      <Filter>Formatters</Filter>
+    </ClInclude>
+    <ClInclude Include="InterfaceFormatter.h">
+      <Filter>Formatters</Filter>
+    </ClInclude>
+    <ClInclude Include="RecordFormatter.h">
+      <Filter>Formatters</Filter>
+    </ClInclude>
+    <ClInclude Include="IdentifierFormatter.h">
+      <Filter>Formatters</Filter>
+    </ClInclude>
+    <ClInclude Include="FunctionFormatter.h">
+      <Filter>Formatters</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -9,6 +9,7 @@ namespace Com
 		enum class GuidFormat
 		{
 			AsString,
+			AsAttribute,
 			AsInitializer
 		};
 
@@ -26,6 +27,7 @@ namespace Com
 
 		private:
 			void WriteAsString(std::ostream& out) const;
+			void WriteAsAttribute(std::ostream& out) const;
 			void WriteAsInitializer(std::ostream& out) const;
 		};
 

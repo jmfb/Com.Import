@@ -12,6 +12,12 @@
 #include "GuidFormatter.h"
 #include "HexFormatter.h"
 #include "TypeFormatter.h"
+#include "EnumFormatter.h"
+#include "AliasFormatter.h"
+#include "InterfaceFormatter.h"
+#include "RecordFormatter.h"
+#include "IdentifierFormatter.h"
+#include "FunctionFormatter.h"
 
 namespace Com
 {
@@ -557,35 +563,7 @@ namespace Com
 		void CodeGenerator::Write(const std::vector<Enum>& enums)
 		{
 			for (auto& enumeration : enums)
-				Write(enumeration);
-		}
-
-		void CodeGenerator::Write(const Enum& enumeration)
-		{
-			out << "	enum class " << enumeration.Name;
-			if (std::any_of(enumeration.Values.begin(), enumeration.Values.end(), &ShouldDisplayAsHex))
-				out << " : unsigned";
-			out << std::endl
-				<< "	{" << std::endl;
-			auto first = true;
-			for (auto& value : enumeration.Values)
-			{
-				if (!first)
-					out << "," << std::endl;
-				first = false;
-				out << "		" << value.Name << " = ";
-				if (ShouldDisplayAsHex(value))
-					out << Hex(value.Value);
-				else
-					out << value.Value;
-			}
-			out << std::endl
-				<< "	};" << std::endl;
-		}
-
-		bool CodeGenerator::ShouldDisplayAsHex(const EnumValue& value)
-		{
-			return (value.Value & 0xf0000000) == 0x80000000;
+				out << Format(enumeration);
 		}
 
 		void CodeGenerator::ForwardDeclare(const std::vector<Interface>& interfaces)
@@ -596,7 +574,7 @@ namespace Com
 
 		void CodeGenerator::ForwardDeclare(const Interface& iface)
 		{
-			out << "	class __declspec(uuid(\"" << Format(iface.Iid, GuidFormat::AsString) << "\")) " << iface.Name << ";" << std::endl
+			out << Format(iface, InterfaceFormat::AsForwardDeclaration)
 				<< "	template <typename Interface> class " << iface.Name << "PtrT;" << std::endl
 				<< "	using " << iface.Name << "Ptr = " << iface.Name << "PtrT<" << iface.Name << ">;" << std::endl;
 		}
@@ -604,107 +582,25 @@ namespace Com
 		void CodeGenerator::Write(const std::vector<Alias>& aliases)
 		{
 			for (auto& alias : aliases)
-				Write(alias);
-		}
-
-		void CodeGenerator::Write(const Alias& alias)
-		{
-			out << "	using " << alias.NewName << " = " << alias.OldName << ";" << std::endl;
+				out << Format(alias);
 		}
 
 		void CodeGenerator::Write(const std::vector<Record>& records)
 		{
 			for (auto& record : records)
-				Write(record);
-		}
-
-		void CodeGenerator::Write(const Record& record)
-		{
-			out << "	#pragma pack(push, " << record.Alignment << ")" << std::endl
-				<< "	struct __declspec(uuid(\"" << Format(record.Guid, GuidFormat::AsString) << "\")) " << record.Name << std::endl
-				<< "	{" << std::endl;
-			for (auto& member : record.Members)
-			{
-				out << "		";
-				out << Format(member.Type, TypeFormat::AsNative);
-				out << " " << member.Name;
-				out << Format(member.Type, TypeFormat::AsSuffix);
-				out << ";" << std::endl;
-			}
-			out << "	};" << std::endl
-				<< "	#pragma pack(pop)" << std::endl;
+				out << Format(record);
 		}
 
 		void CodeGenerator::Write(const std::vector<Interface>& interfaces)
 		{
 			for (auto& iface : interfaces)
-				Write(iface);
-		}
-
-		void CodeGenerator::Write(const Interface& iface)
-		{
-			out << "	class __declspec(uuid(\"" << Format(iface.Iid, GuidFormat::AsString) << "\")) " << iface.Name << " : public " << iface.Base << std::endl
-				<< "	{" << std::endl
-				<< "	public:" << std::endl;
-			auto nextPlaceholderId = 1;
-			auto nextValidOffset = iface.VtblOffset;
-			for (auto& function : iface.Functions)
-			{
-				if (function.VtblOffset == 0 && function.IsDispatchOnly)
-				{
-					Write(function);
-					continue;
-				}
-
-				if (function.VtblOffset < nextValidOffset)
-					continue;
-
-				while (nextValidOffset < function.VtblOffset)
-				{
-					out << "		virtual HRESULT __stdcall _VtblGapPlaceholder" << nextPlaceholderId << "() { return E_NOTIMPL; }" << std::endl;
-					++nextPlaceholderId;
-					nextValidOffset += 4;
-				}
-
-				Write(function);
-				nextValidOffset += 4;
-			}
-			out << "	};" << std::endl;
-		}
-
-		void CodeGenerator::Write(const Function& function)
-		{
-			out << "		";
-			if (function.IsDispatchOnly)
-				out << "//";
-			out << "virtual ";
-			out << Format(function.Retval, TypeFormat::AsNative);
-			out << " __stdcall ";
-			if (implement)
-				out << "raw_";
-			out << function.Name << "(";
-			auto first = true;
-			for (auto& argument : function.ArgList)
-			{
-				if (!first)
-					out << ", ";
-				first = false;
-				out << Format(argument.Type, TypeFormat::AsNative);
-				out << " " << argument.Name;
-			}
-			out << ") = 0;" << std::endl;
+				out << Format(iface, InterfaceFormat::AsNative, implement ? "raw_" : "");
 		}
 
 		void CodeGenerator::Write(const std::vector<Identifier>& identifiers)
 		{
 			for (auto& identifier : identifiers)
-				Write(identifier);
-		}
-
-		void CodeGenerator::Write(const Identifier& identifier)
-		{
-			out << "	extern const ::GUID __declspec(selectany) " << identifier.Name
-				<< " = " << Format(identifier.Guid, GuidFormat::AsInitializer) << ";" << std::endl;
+				out << Format(identifier);
 		}
 
 		void CodeGenerator::Write(const Parameter& parameter)

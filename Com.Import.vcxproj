@@ -142,14 +142,20 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="AliasFormatter.cpp" />
     <ClCompile Include="ArgumentNames.cpp" />
     <ClCompile Include="CodeGenerator.cpp" />
     <ClCompile Include="ElementDescription.cpp" />
+    <ClCompile Include="EnumFormatter.cpp" />
     <ClCompile Include="FunctionDescription.cpp" />
+    <ClCompile Include="FunctionFormatter.cpp" />
     <ClCompile Include="GuidFormatter.cpp" />
+    <ClCompile Include="IdentifierFormatter.cpp" />
+    <ClCompile Include="InterfaceFormatter.cpp" />
     <ClCompile Include="LibraryLoader.cpp" />
     <ClCompile Include="Loader.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="RecordFormatter.cpp" />
     <ClCompile Include="RecordSorter.cpp" />
     <ClCompile Include="TypeDescription.cpp" />
     <ClCompile Include="TypeFormatter.cpp" />
@@ -158,6 +164,7 @@
     <ClCompile Include="VariableDescription.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="AliasFormatter.h" />
     <ClInclude Include="ArgumentNames.h" />
     <ClInclude Include="CodeGenerator.h" />
     <ClInclude Include="Com\ClassFactory.h" />
@@ -172,12 +179,17 @@
     <ClInclude Include="Com\ObjectList.h" />
     <ClInclude Include="Com\Pointer.h" />
     <ClInclude Include="DataTypes.h" />
+    <ClInclude Include="EnumFormatter.h" />
     <ClInclude Include="FunctionDescription.h" />
     <ClInclude Include="ElementDescription.h" />
+    <ClInclude Include="FunctionFormatter.h" />
     <ClInclude Include="GuidFormatter.h" />
     <ClInclude Include="HexFormatter.h" />
+    <ClInclude Include="IdentifierFormatter.h" />
+    <ClInclude Include="InterfaceFormatter.h" />
     <ClInclude Include="LibraryLoader.h" />
     <ClInclude Include="Loader.h" />
+    <ClInclude Include="RecordFormatter.h" />
     <ClInclude Include="RecordSorter.h" />
     <ClInclude Include="TypeDescription.h" />
     <ClInclude Include="TypeFormatter.h" />

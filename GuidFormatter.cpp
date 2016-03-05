@@ -20,6 +20,9 @@ namespace Com
 			case GuidFormat::AsString:
 				WriteAsString(out);
 				break;
+			case GuidFormat::AsAttribute:
+				WriteAsAttribute(out);
+				break;
 			case GuidFormat::AsInitializer:
 				WriteAsInitializer(out);
 				break;
@@ -40,6 +43,13 @@ namespace Com
 			if (result != bufferSize)
 				throw std::runtime_error("Error formatting GUID");
 			out << std::wstring_convert<std::codecvt_utf8<wchar_t>>().to_bytes(buffer).substr(1, 36);
+		}
+
+		void GuidFormatter::WriteAsAttribute(std::ostream& out) const
+		{
+			out << "__declspec(uuid(\"";
+			WriteAsString(out);
+			out << "\"))";
 		}
 
 		void GuidFormatter::WriteAsInitializer(std::ostream& out) const
