@@ -146,11 +146,13 @@
     <ClCompile Include="CodeGenerator.cpp" />
     <ClCompile Include="ElementDescription.cpp" />
     <ClCompile Include="FunctionDescription.cpp" />
+    <ClCompile Include="GuidFormatter.cpp" />
     <ClCompile Include="LibraryLoader.cpp" />
     <ClCompile Include="Loader.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="RecordSorter.cpp" />
     <ClCompile Include="TypeDescription.cpp" />
+    <ClCompile Include="TypeFormatter.cpp" />
     <ClCompile Include="TypeInfo.cpp" />
     <ClCompile Include="TypeLibrary.cpp" />
     <ClCompile Include="VariableDescription.cpp" />
@@ -172,10 +174,13 @@
     <ClInclude Include="DataTypes.h" />
     <ClInclude Include="FunctionDescription.h" />
     <ClInclude Include="ElementDescription.h" />
+    <ClInclude Include="GuidFormatter.h" />
+    <ClInclude Include="HexFormatter.h" />
     <ClInclude Include="LibraryLoader.h" />
     <ClInclude Include="Loader.h" />
     <ClInclude Include="RecordSorter.h" />
     <ClInclude Include="TypeDescription.h" />
+    <ClInclude Include="TypeFormatter.h" />
     <ClInclude Include="TypeInfo.h" />
     <ClInclude Include="TypeLibrary.h" />
     <ClInclude Include="VariableDescription.h" />

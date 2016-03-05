@@ -62,9 +62,6 @@ namespace Com
 			void Write(const std::vector<Identifier>& identifiers);
 			void Write(const Identifier& identifier);
 			void Write(const Parameter& parameter);
-			void WriteType(const Type& type);
-			void WriteTypeAsRetval(const Type& type);
-			void WriteTypeSuffix(const Type& type);
 			void Write(const std::vector<Coclass>& coclasses);
 			void Write(const Coclass& coclass);
 			void WriteNativeFunctions(
@@ -80,26 +77,8 @@ namespace Com
 			void WriteWrapperFunctions(const Interface& iface);
 			void WriteWrapperDispatch(const std::string& interfaceName, const Function& function);
 			void WriteWrapperFunction(const std::string& interfaceName, const Function& function);
-			void WriteDefault(const Type& type);
-			static std::string Format(const GUID& guid);
 			static std::string GetWrapperBase(const Interface& iface);
-			static std::string GetSmartPointer(const Type& type);
-			static bool IsStandardOle(const Type& type);
 			static std::set<std::string> GetConflictingInterfaces(const Coclass& coclass);
-
-			template <typename Integer>
-			void WriteHex(Integer value)
-			{
-				static_assert(sizeof(value) <= sizeof(int), "Integer type is too large.");
-				using UnsignedInteger = std::make_unsigned<Integer>::type;
-				out << "0x"
-					<< std::setw(sizeof(value) * 2)
-					<< std::setfill('0')
-					<< std::right
-					<< std::hex
-					<< static_cast<unsigned int>(static_cast<UnsignedInteger>(value))
-					<< std::dec;
-			}
 		};
 	}
 };

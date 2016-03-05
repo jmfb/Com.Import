@@ -35,6 +35,12 @@
     <ClCompile Include="RecordSorter.cpp">
       <Filter>Importer</Filter>
     </ClCompile>
+    <ClCompile Include="GuidFormatter.cpp">
+      <Filter>Generator</Filter>
+    </ClCompile>
+    <ClCompile Include="TypeFormatter.cpp">
+      <Filter>Generator</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Com">
@@ -45,6 +51,9 @@
     </Filter>
     <Filter Include="TypeLibrary">
       <UniqueIdentifier>{04bca9db-c0d3-43e9-81af-079264fa5614}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Generator">
+      <UniqueIdentifier>{fe12aa58-f1a8-4c2c-9cb4-ec4cb525f2a9}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -116,6 +125,15 @@
     </ClInclude>
     <ClInclude Include="TypeLibrary.h">
       <Filter>TypeLibrary</Filter>
+    </ClInclude>
+    <ClInclude Include="HexFormatter.h">
+      <Filter>Generator</Filter>
+    </ClInclude>
+    <ClInclude Include="GuidFormatter.h">
+      <Filter>Generator</Filter>
+    </ClInclude>
+    <ClInclude Include="TypeFormatter.h">
+      <Filter>Generator</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

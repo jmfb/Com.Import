@@ -9,6 +9,9 @@
 #include <ctime>
 #include <map>
 #include <set>
+#include "GuidFormatter.h"
+#include "HexFormatter.h"
+#include "TypeFormatter.h"
 
 namespace Com
 {
@@ -300,11 +303,11 @@ namespace Com
 			for (auto& coclass : library.Coclasses)
 			{
 				out << "		<comClass" << std::endl
-					<< "			clsid=\"{" << Format(coclass.Clsid) << "}\"" << std::endl
+					<< "			clsid=\"{" << Format(coclass.Clsid, GuidFormat::AsString) << "}\"" << std::endl
 					<< "			threadingModel=\"Free\" />" << std::endl;
 			}
 			out << "		<typelib" << std::endl
-				<< "			tlbid=\"{" << Format(library.Libid) << "}\"" << std::endl
+				<< "			tlbid=\"{" << Format(library.Libid, GuidFormat::AsString) << "}\"" << std::endl
 				<< "			version=\"" << library.MajorVersion << "." << library.MinorVersion << "\"" << std::endl
 				<< "			helpdir=\"\" />" << std::endl
 				<< "	</file>" << std::endl;
@@ -312,10 +315,10 @@ namespace Com
 			{
 				out << "	<comInterfaceExternalProxyStub" << std::endl
 					<< "		name=\"" << iface.Name << "\"" << std::endl
-					<< "		iid=\"{" << Format(iface.Iid) << "}\"" << std::endl
+					<< "		iid=\"{" << Format(iface.Iid, GuidFormat::AsString) << "}\"" << std::endl
 					<< "		proxyStubClsid32=\"{00020424-0000-0000-C000-000000000046}\"" << std::endl
-					<< "		baseInterface=\"{" << Format(iface.BaseIid) << "}\"" << std::endl
-					<< "		tlbid=\"{" << Format(library.Libid) << "}\" />" << std::endl;
+					<< "		baseInterface=\"{" << Format(iface.BaseIid, GuidFormat::AsString) << "}\"" << std::endl
+					<< "		tlbid=\"{" << Format(library.Libid, GuidFormat::AsString) << "}\" />" << std::endl;
 			}
 			out << "</assembly>" << std::endl;
 		}
@@ -329,7 +332,7 @@ namespace Com
 				<< "VisualStudioVersion = 14.0.24720.0" << std::endl
 				<< "MinimumVisualStudioVersion = 10.0.40219.1" << std::endl
 				<< "Project(\"{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}\") = \"" << result.PrimaryLibrary.Name
-					<< "\", \"" << result.PrimaryLibrary.Name << ".vcxproj\", \"{" << Format(result.PrimaryLibrary.Libid) << "}\"" << std::endl
+					<< "\", \"" << result.PrimaryLibrary.Name << ".vcxproj\", \"{" << Format(result.PrimaryLibrary.Libid, GuidFormat::AsString) << "}\"" << std::endl
 				<< "EndProject" << std::endl
 				<< "Global" << std::endl
 				<< "	GlobalSection(SolutionConfigurationPlatforms) = preSolution" << std::endl
@@ -337,10 +340,10 @@ namespace Com
 				<< "		Release|x86 = Release|x86" << std::endl
 				<< "	EndGlobalSection" << std::endl
 				<< "	GlobalSection(ProjectConfigurationPlatforms) = postSolution" << std::endl
-				<< "		{" << Format(result.PrimaryLibrary.Libid) << "}.Debug|x86.ActiveCfg = Debug|Win32" << std::endl
-				<< "		{" << Format(result.PrimaryLibrary.Libid) << "}.Debug|x86.Build.0 = Debug|Win32" << std::endl
-				<< "		{" << Format(result.PrimaryLibrary.Libid) << "}.Release|x86.ActiveCfg = Release|Win32" << std::endl
-				<< "		{" << Format(result.PrimaryLibrary.Libid) << "}.Release|x86.Build.0 = Release|Win32" << std::endl
+				<< "		{" << Format(result.PrimaryLibrary.Libid, GuidFormat::AsString) << "}.Debug|x86.ActiveCfg = Debug|Win32" << std::endl
+				<< "		{" << Format(result.PrimaryLibrary.Libid, GuidFormat::AsString) << "}.Debug|x86.Build.0 = Debug|Win32" << std::endl
+				<< "		{" << Format(result.PrimaryLibrary.Libid, GuidFormat::AsString) << "}.Release|x86.ActiveCfg = Release|Win32" << std::endl
+				<< "		{" << Format(result.PrimaryLibrary.Libid, GuidFormat::AsString) << "}.Release|x86.Build.0 = Release|Win32" << std::endl
 				<< "	EndGlobalSection" << std::endl
 				<< "	GlobalSection(SolutionProperties) = preSolution" << std::endl
 				<< "		HideSolutionNode = FALSE" << std::endl
@@ -366,7 +369,7 @@ namespace Com
 				<< "    </ProjectConfiguration>" << std::endl
 				<< "  </ItemGroup>" << std::endl
 				<< "  <PropertyGroup Label=\"Globals\">" << std::endl
-				<< "    <ProjectGuid>{" << Format(result.PrimaryLibrary.Libid) << "}</ProjectGuid>" << std::endl
+				<< "    <ProjectGuid>{" << Format(result.PrimaryLibrary.Libid, GuidFormat::AsString) << "}</ProjectGuid>" << std::endl
 				<< "    <Keyword>Win32Proj</Keyword>" << std::endl
 				<< "    <RootNamespace>" << result.PrimaryLibrary.Name << "</RootNamespace>" << std::endl
 				<< "    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>" << std::endl
@@ -572,7 +575,7 @@ namespace Com
 				first = false;
 				out << "		" << value.Name << " = ";
 				if (ShouldDisplayAsHex(value))
-					WriteHex(value.Value);
+					out << Hex(value.Value);
 				else
 					out << value.Value;
 			}
@@ -593,7 +596,7 @@ namespace Com
 
 		void CodeGenerator::ForwardDeclare(const Interface& iface)
 		{
-			out << "	class __declspec(uuid(\"" << Format(iface.Iid) << "\")) " << iface.Name << ";" << std::endl
+			out << "	class __declspec(uuid(\"" << Format(iface.Iid, GuidFormat::AsString) << "\")) " << iface.Name << ";" << std::endl
 				<< "	template <typename Interface> class " << iface.Name << "PtrT;" << std::endl
 				<< "	using " << iface.Name << "Ptr = " << iface.Name << "PtrT<" << iface.Name << ">;" << std::endl;
 		}
@@ -618,14 +621,14 @@ namespace Com
 		void CodeGenerator::Write(const Record& record)
 		{
 			out << "	#pragma pack(push, " << record.Alignment << ")" << std::endl
-				<< "	struct __declspec(uuid(\"" << Format(record.Guid) << "\")) " << record.Name << std::endl
+				<< "	struct __declspec(uuid(\"" << Format(record.Guid, GuidFormat::AsString) << "\")) " << record.Name << std::endl
 				<< "	{" << std::endl;
 			for (auto& member : record.Members)
 			{
 				out << "		";
-				WriteType(member.Type);
+				out << Format(member.Type, TypeFormat::AsNative);
 				out << " " << member.Name;
-				WriteTypeSuffix(member.Type);
+				out << Format(member.Type, TypeFormat::AsSuffix);
 				out << ";" << std::endl;
 			}
 			out << "	};" << std::endl
@@ -640,7 +643,7 @@ namespace Com
 
 		void CodeGenerator::Write(const Interface& iface)
 		{
-			out << "	class __declspec(uuid(\"" << Format(iface.Iid) << "\")) " << iface.Name << " : public " << iface.Base << std::endl
+			out << "	class __declspec(uuid(\"" << Format(iface.Iid, GuidFormat::AsString) << "\")) " << iface.Name << " : public " << iface.Base << std::endl
 				<< "	{" << std::endl
 				<< "	public:" << std::endl;
 			auto nextPlaceholderId = 1;
@@ -675,7 +678,7 @@ namespace Com
 			if (function.IsDispatchOnly)
 				out << "//";
 			out << "virtual ";
-			WriteType(function.Retval);
+			out << Format(function.Retval, TypeFormat::AsNative);
 			out << " __stdcall ";
 			if (implement)
 				out << "raw_";
@@ -686,7 +689,7 @@ namespace Com
 				if (!first)
 					out << ", ";
 				first = false;
-				WriteType(argument.Type);
+				out << Format(argument.Type, TypeFormat::AsNative);
 				out << " " << argument.Name;
 			}
 			out << ") = 0;" << std::endl;
@@ -700,144 +703,16 @@ namespace Com
 
 		void CodeGenerator::Write(const Identifier& identifier)
 		{
-			out << "	extern const ::GUID __declspec(selectany) " << identifier.Name << " = {";
-			WriteHex(identifier.Guid.Data1);
-			out << ",";
-			WriteHex(identifier.Guid.Data2);
-			out << ",";
-			WriteHex(identifier.Guid.Data3);
-			out << ",{";
-			auto first = true;
-			for (auto part : identifier.Guid.Data4)
-			{
-				if (!first)
-					out << ",";
-				first = false;
-				WriteHex(part);
-			}
-			out << "}};" << std::endl;
+			out << "	extern const ::GUID __declspec(selectany) " << identifier.Name
+				<< " = " << Format(identifier.Guid, GuidFormat::AsInitializer) << ";" << std::endl;
 		}
 
 		void CodeGenerator::Write(const Parameter& parameter)
 		{
-			switch (parameter.Type.TypeEnum)
-			{
-			case TypeEnum::Enum:
-			case TypeEnum::Record: out << parameter.Type.CustomName; break;
-			case TypeEnum::Interface: out << GetSmartPointer(parameter.Type); break;
-			case TypeEnum::Int: out << "int"; break;
-			case TypeEnum::Int8: out << "char"; break;
-			case TypeEnum::Int16: out << "short"; break;
-			case TypeEnum::Int32: out << "long"; break;
-			case TypeEnum::Int64: out << "long long"; break;
-			case TypeEnum::UInt: out << "unsigned int"; break;
-			case TypeEnum::UInt8: out << "unsigned char"; break;
-			case TypeEnum::UInt16: out << "unsigned short"; break;
-			case TypeEnum::UInt32: out << "unsigned long"; break;
-			case TypeEnum::UInt64: out << "unsigned long long"; break;
-			case TypeEnum::Float: out << "float"; break;
-			case TypeEnum::Double: out << "double"; break;
-			case TypeEnum::Currency: out << "CURRENCY"; break;
-			case TypeEnum::Date: out << "std::chrono::system_clock::time_point"; break;
-			case TypeEnum::String: out << "std::string"; break;
-			case TypeEnum::Dispatch: out << "Com::Pointer<IDispatch>"; break;
-			case TypeEnum::Error: out << "SCODE"; break;
-			case TypeEnum::Bool: out << "bool"; break;
-			case TypeEnum::Variant: out << "Com::Variant"; break;
-			case TypeEnum::Decimal: out << "DECIMAL"; break;
-			case TypeEnum::Unknown: out << "Com::Pointer<IUnknown>"; break;
-			case TypeEnum::Hresult: out << "HRESULT"; break;
-			case TypeEnum::SafeArray: out << "SAFEARRAY*"; break;
-			case TypeEnum::Guid: out << "::GUID"; break;
-			default:
-				throw std::runtime_error("Invalid type as return value.");
-			}
+			out << Format(parameter.Type, TypeFormat::AsWrapper);
 			if (parameter.Out)
 				out << "&";
 			out << " " << parameter.Name;
-		}
-
-		void CodeGenerator::WriteType(const Type& type)
-		{
-			switch (type.TypeEnum)
-			{
-			case TypeEnum::Enum:
-			case TypeEnum::Record:
-			case TypeEnum::Interface: out << type.CustomName; break;
-			case TypeEnum::Void: out << "void"; break;
-			case TypeEnum::Int: out << "int"; break;
-			case TypeEnum::Int8: out << "char"; break;
-			case TypeEnum::Int16: out << "short"; break;
-			case TypeEnum::Int32: out << "long"; break;
-			case TypeEnum::Int64: out << "long long"; break;
-			case TypeEnum::UInt: out << "unsigned int"; break;
-			case TypeEnum::UInt8: out << "unsigned char"; break;
-			case TypeEnum::UInt16: out << "unsigned short"; break;
-			case TypeEnum::UInt32: out << "unsigned long"; break;
-			case TypeEnum::UInt64: out << "unsigned long long"; break;
-			case TypeEnum::Float: out << "float"; break;
-			case TypeEnum::Double: out << "double"; break;
-			case TypeEnum::Currency: out << "CURRENCY"; break;
-			case TypeEnum::Date: out << "DATE"; break;
-			case TypeEnum::String: out << "BSTR"; break;
-			case TypeEnum::Dispatch: out << "IDispatch*"; break;
-			case TypeEnum::Error: out << "SCODE"; break;
-			case TypeEnum::Bool: out << "VARIANT_BOOL"; break;
-			case TypeEnum::Variant: out << "VARIANT"; break;
-			case TypeEnum::Decimal: out << "DECIMAL"; break;
-			case TypeEnum::Unknown: out << "IUnknown*"; break;
-			case TypeEnum::Hresult: out << "HRESULT"; break;
-			case TypeEnum::SafeArray: out << "SAFEARRAY*"; break;
-			case TypeEnum::Guid: out << "::GUID"; break;
-			case TypeEnum::StringPtrA: out << "char*"; break;
-			case TypeEnum::StringPtrW: out << "wchar_t*"; break;
-			default:
-				throw std::runtime_error("Invalid type.");
-			}
-			if (type.Indirection > 0)
-				out << std::string(type.Indirection, '*');
-		}
-
-		void CodeGenerator::WriteTypeAsRetval(const Type& type)
-		{
-			switch (type.TypeEnum)
-			{
-			case TypeEnum::Enum:
-			case TypeEnum::Record: out << type.CustomName; break;
-			case TypeEnum::Interface: out << GetSmartPointer(type); break;
-			case TypeEnum::Int: out << "int"; break;
-			case TypeEnum::Int8: out << "char"; break;
-			case TypeEnum::Int16: out << "short"; break;
-			case TypeEnum::Int32: out << "long"; break;
-			case TypeEnum::Int64: out << "long long"; break;
-			case TypeEnum::UInt: out << "unsigned int"; break;
-			case TypeEnum::UInt8: out << "unsigned char"; break;
-			case TypeEnum::UInt16: out << "unsigned short"; break;
-			case TypeEnum::UInt32: out << "unsigned long"; break;
-			case TypeEnum::UInt64: out << "unsigned long long"; break;
-			case TypeEnum::Float: out << "float"; break;
-			case TypeEnum::Double: out << "double"; break;
-			case TypeEnum::Currency: out << "CURRENCY"; break;
-			case TypeEnum::Date: out << "std::chrono::system_clock::time_point"; break;
-			case TypeEnum::String: out << "std::string"; break;
-			case TypeEnum::Dispatch: out << "Com::Pointer<IDispatch>"; break;
-			case TypeEnum::Error: out << "SCODE"; break;
-			case TypeEnum::Bool: out << "bool"; break;
-			case TypeEnum::Variant: out << "Com::Variant"; break;
-			case TypeEnum::Decimal: out << "DECIMAL"; break;
-			case TypeEnum::Unknown: out << "Com::Pointer<IUnknown>"; break;
-			case TypeEnum::Hresult: out << "HRESULT"; break;
-			case TypeEnum::SafeArray: out << "SAFEARRAY*"; break;
-			case TypeEnum::Guid: out << "::GUID"; break;
-			default:
-				throw std::runtime_error("Invalid type as return value.");
-			}
-		}
-
-		void CodeGenerator::WriteTypeSuffix(const Type& type)
-		{
-			if (type.IsArray)
-				out << "[" << type.ArraySize << "]";
 		}
 
 		void CodeGenerator::Write(const std::vector<Coclass>& coclasses)
@@ -853,7 +728,8 @@ namespace Com
 			{
 				if (conflictingInterfaces.find(iface.Name) != conflictingInterfaces.end())
 				{
-					out << "	class __declspec(uuid(\"" << Format(iface.Iid) << "\")) " << iface.Name << "_" << coclass.Name << " : public " << iface.Name << std::endl
+					out << "	class __declspec(uuid(\"" << Format(iface.Iid, GuidFormat::AsString) << "\")) "
+						<< iface.Name << "_" << coclass.Name << " : public " << iface.Name << std::endl
 						<< "	{" << std::endl
 						<< "	public:" << std::endl;
 					for (auto& function : iface.Functions)
@@ -861,7 +737,7 @@ namespace Com
 						if ((function.VtblOffset == 0 && function.IsDispatchOnly) || (function.VtblOffset >= iface.VtblOffset))
 						{
 							out << "		virtual ";
-							WriteType(function.Retval);
+							out << Format(function.Retval, TypeFormat::AsNative);
 							out << " __stdcall " << iface.Name << "_raw_" << function.Name << "(";
 							auto first = true;
 							for (auto& argument : function.ArgList)
@@ -869,12 +745,12 @@ namespace Com
 								if (!first)
 									out << ", ";
 								first = false;
-								WriteType(argument.Type);
+								out << Format(argument.Type, TypeFormat::AsNative);
 								out << " " << argument.Name;
 							}
 							out << ") = 0;" << std::endl;
 							out << "		";
-							WriteType(function.Retval);
+							out << Format(function.Retval, TypeFormat::AsNative);
 							out << " __stdcall raw_" << function.Name << "(";
 							first = true;
 							for (auto& argument : function.ArgList)
@@ -882,7 +758,7 @@ namespace Com
 								if (!first)
 									out << ", ";
 								first = false;
-								WriteType(argument.Type);
+								out << Format(argument.Type, TypeFormat::AsNative);
 								out << " " << argument.Name;
 							}
 							out << ") final" << std::endl
@@ -941,7 +817,7 @@ namespace Com
 					if (definition == FunctionDefinition::Abstract)
 						out << "virtual ";
 					if (!function.ArgList.empty() && function.ArgList.back().Retval)
-						WriteTypeAsRetval(function.ArgList.back().Type);
+						out << Format(function.ArgList.back().Type, TypeFormat::AsWrapper);
 					else
 						out << "void";
 					out << " ";
@@ -997,7 +873,7 @@ namespace Com
 						if (!first)
 							out << ", ";
 						first = false;
-						WriteType(argument.Type);
+						out << Format(argument.Type, TypeFormat::AsNative);
 						out << " " << argument.Name;
 					}
 					out << ") final" << std::endl
@@ -1075,7 +951,7 @@ namespace Com
 				{
 					out << "		";
 					if (!function.ArgList.empty() && function.ArgList.back().Retval)
-						WriteTypeAsRetval(function.ArgList.back().Type);
+						out << Format(function.ArgList.back().Type, TypeFormat::AsWrapper);
 					else
 						out << "void";
 					out << " " << function.Name << "(";
@@ -1155,7 +1031,7 @@ namespace Com
 				<< "	inline ";
 			auto hasRetval = !function.ArgList.empty() && function.ArgList.back().Retval;
 			if (hasRetval)
-				WriteTypeAsRetval(function.ArgList.back().Type);
+				out << Format(function.ArgList.back().Type, TypeFormat::AsWrapper);
 			else
 				out << "void";
 			out << " " << interfaceName << "PtrT<Interface>::" << function.Name << "(";
@@ -1174,9 +1050,9 @@ namespace Com
 			if (hasRetval)
 			{
 				out << "		";
-				WriteTypeAsRetval(function.ArgList.back().Type);
+				out << Format(function.ArgList.back().Type, TypeFormat::AsWrapper);
 				out << " retval";
-				WriteDefault(function.ArgList.back().Type);
+				out << Format(function.ArgList.back().Type, TypeFormat::AsInitializer);
 				out << ";" << std::endl;
 			}
 			out << "		";
@@ -1208,69 +1084,11 @@ namespace Com
 			out << "	}" << std::endl;
 		}
 
-		void CodeGenerator::WriteDefault(const Type& type)
-		{
-			switch (type.TypeEnum)
-			{
-			case TypeEnum::Int:
-			case TypeEnum::Int8:
-			case TypeEnum::Int16:
-			case TypeEnum::Int32:
-			case TypeEnum::Int64:
-			case TypeEnum::UInt:
-			case TypeEnum::UInt8:
-			case TypeEnum::UInt16:
-			case TypeEnum::UInt32:
-			case TypeEnum::UInt64:
-			case TypeEnum::Float:
-			case TypeEnum::Double:
-			case TypeEnum::Error:
-				out << " = 0";
-				break;
-
-			case TypeEnum::Bool:
-				out << " = false";
-				break;
-
-			case TypeEnum::Hresult:
-				out << " = S_OK";
-				break;
-			}
-		}
-
-		std::string CodeGenerator::Format(const GUID& guid)
-		{
-			const auto bufferSize = 39;
-			wchar_t buffer[bufferSize];
-			auto result = ::StringFromGUID2(guid, buffer, bufferSize);
-			if (result != bufferSize)
-				throw std::runtime_error("Error formatting GUID");
-			return std::wstring_convert<std::codecvt_utf8<wchar_t>>().to_bytes(buffer).substr(1, 36);
-		}
-
 		std::string CodeGenerator::GetWrapperBase(const Interface& iface)
 		{
 			if (iface.Base == "IUnknown" || iface.Base == "IDispatch")
 				return "Com::Pointer<Interface>";
 			return iface.Base + "PtrT<Interface>";
-		}
-
-		std::string CodeGenerator::GetSmartPointer(const Type& type)
-		{
-			return IsStandardOle(type) ?
-				"Com::Pointer<" + type.CustomName + ">" :
-				type.CustomName + "Ptr";
-		}
-
-		bool CodeGenerator::IsStandardOle(const Type& type)
-		{
-			return type.CustomName == "IUnknown" ||
-				type.CustomName == "IDispatch" ||
-				type.CustomName == "IPicture" ||
-				type.CustomName == "IPictureDisp" ||
-				type.CustomName == "IFont" ||
-				type.CustomName == "IEnumVARIANT" ||
-				type.CustomName == "GUID";
 		}
 
 		std::set<std::string> CodeGenerator::GetConflictingInterfaces(const Coclass& coclass)
