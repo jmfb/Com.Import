@@ -6,8 +6,12 @@ namespace Com
 {
 	namespace Import
 	{
-		InterfaceFormatter::InterfaceFormatter(const Interface& value, InterfaceFormat format, const std::string& prefix)
-			: value(value), format(format), prefix(prefix)
+		InterfaceFormatter::InterfaceFormatter(
+			const Interface& value,
+			InterfaceFormat format,
+			const std::string& prefix,
+			const std::string& scope)
+			: value(value), format(format), prefix(prefix), scope(scope)
 		{
 		}
 
@@ -20,6 +24,9 @@ namespace Com
 				break;
 			case InterfaceFormat::AsNative:
 				WriteAsNative(out);
+				break;
+			case InterfaceFormat::AsTypeInfoSpecialization:
+				WriteAsTypeInfoSpecialization(out);
 				break;
 			}
 			return out;
@@ -67,9 +74,26 @@ namespace Com
 			out << "	};" << std::endl;
 		}
 
-		InterfaceFormatter Format(const Interface& value, InterfaceFormat format, const std::string& prefix)
+		void InterfaceFormatter::WriteAsTypeInfoSpecialization(std::ostream& out) const
 		{
-			return{ value, format, prefix };
+			auto interfaceName = scope + "::" + value.Name;
+			out << "	template <>" << std::endl
+				<< "	class TypeInfo<" << interfaceName << "*>" << std::endl
+				<< "	{" << std::endl
+				<< "	public:" << std::endl
+				<< "		using In = InValue<" << interfaceName << "*, " << interfaceName << "Ptr>;" << std::endl
+				<< "		using InOut = InOutValue<" << interfaceName << "*, " << interfaceName << "Ptr>;" << std::endl
+				<< "		using Retval = RetvalValue<" << interfaceName << "Ptr, " << interfaceName << "*>;" << std::endl
+				<< "	};" << std::endl;
+		}
+
+		InterfaceFormatter Format(
+			const Interface& value,
+			InterfaceFormat format,
+			const std::string& prefix,
+			const std::string& scope)
+		{
+			return{ value, format, prefix, scope };
 		}
 	}
 }

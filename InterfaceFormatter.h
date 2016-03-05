@@ -9,7 +9,8 @@ namespace Com
 		enum class InterfaceFormat
 		{
 			AsForwardDeclaration,
-			AsNative
+			AsNative,
+			AsTypeInfoSpecialization
 		};
 
 		class InterfaceFormatter
@@ -18,9 +19,14 @@ namespace Com
 			const Interface& value;
 			InterfaceFormat format;
 			std::string prefix;
+			std::string scope;
 
 		public:
-			InterfaceFormatter(const Interface& value, InterfaceFormat format, const std::string& prefix);
+			InterfaceFormatter(
+				const Interface& value,
+				InterfaceFormat format,
+				const std::string& prefix,
+				const std::string& scope);
 
 			std::ostream& Write(std::ostream& out) const;
 			friend std::ostream& operator<<(std::ostream& out, const InterfaceFormatter& value);
@@ -28,8 +34,13 @@ namespace Com
 		private:
 			void WriteAsForwardDeclaration(std::ostream& out) const;
 			void WriteAsNative(std::ostream& out) const;
+			void WriteAsTypeInfoSpecialization(std::ostream& out) const;
 		};
 
-		InterfaceFormatter Format(const Interface& value, InterfaceFormat format, const std::string& prefix = "");
+		InterfaceFormatter Format(
+			const Interface& value,
+			InterfaceFormat format,
+			const std::string& prefix = "",
+			const std::string& scope = "");
 	}
 }

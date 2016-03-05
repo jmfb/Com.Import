@@ -53,7 +53,6 @@ namespace Com
 			void Write(const std::vector<Record>& records);
 			void Write(const std::vector<Interface>& interfaces);
 			void Write(const std::vector<Identifier>& identifiers);
-			void Write(const Parameter& parameter);
 			void Write(const std::vector<Coclass>& coclasses);
 			void Write(const Coclass& coclass);
 			void WriteNativeFunctions(
@@ -64,10 +63,8 @@ namespace Com
 			void WriteWrappers(const std::vector<Interface>& interfaces);
 			void WriteWrapper(const Interface& iface);
 			void WriteComTypeInfo(const std::string& libraryName, const std::vector<Interface>& interfaces);
-			void WriteComTypeInfo(const std::string& libraryName, const Interface& iface);
 			void WriteWrapperFunctions(const Interface& iface);
 			void WriteWrapperDispatch(const std::string& interfaceName, const Function& function);
-			void WriteWrapperFunction(const std::string& interfaceName, const Function& function);
 			static std::string GetWrapperBase(const Interface& iface);
 		};
 	}

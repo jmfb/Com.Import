@@ -59,6 +59,9 @@
     <ClCompile Include="FunctionFormatter.cpp">
       <Filter>Formatters</Filter>
     </ClCompile>
+    <ClCompile Include="ParameterFormatter.cpp">
+      <Filter>Formatters</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Com">
@@ -169,6 +172,9 @@
       <Filter>Formatters</Filter>
     </ClInclude>
     <ClInclude Include="FunctionFormatter.h">
+      <Filter>Formatters</Filter>
+    </ClInclude>
+    <ClInclude Include="ParameterFormatter.h">
       <Filter>Formatters</Filter>
     </ClInclude>
   </ItemGroup>

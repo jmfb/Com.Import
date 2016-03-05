@@ -8,7 +8,8 @@ namespace Com
 	{
 		enum class FunctionFormat
 		{
-			AsAbstract
+			AsAbstract,
+			AsWrapperImplementation
 		};
 
 		class FunctionFormatter
@@ -17,17 +18,27 @@ namespace Com
 			const Function& value;
 			FunctionFormat format;
 			std::string prefix;
+			std::string scope;
 
 		public:
-			FunctionFormatter(const Function& value, FunctionFormat format, const std::string& prefix);
+			FunctionFormatter(
+				const Function& value,
+				FunctionFormat format,
+				const std::string& prefix,
+				const std::string& scope);
 
 			std::ostream& Write(std::ostream& out) const;
 			friend std::ostream& operator<<(std::ostream& out, const FunctionFormatter& value);
 
 		private:
 			void WriteAsAbstract(std::ostream& out) const;
+			void WriteAsWrapperImplementation(std::ostream& out) const;
 		};
 
-		FunctionFormatter Format(const Function& value, FunctionFormat format, const std::string& prefix = "");
+		FunctionFormatter Format(
+			const Function& value,
+			FunctionFormat format,
+			const std::string& prefix = "",
+			const std::string& scope = "");
 	}
 }

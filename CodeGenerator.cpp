@@ -18,6 +18,7 @@
 #include "RecordFormatter.h"
 #include "IdentifierFormatter.h"
 #include "FunctionFormatter.h"
+#include "ParameterFormatter.h"
 
 namespace Com
 {
@@ -595,14 +596,6 @@ namespace Com
 				out << Format(identifier);
 		}
 
-		void CodeGenerator::Write(const Parameter& parameter)
-		{
-			out << Format(parameter.Type, TypeFormat::AsWrapper);
-			if (parameter.Out)
-				out << "&";
-			out << " " << parameter.Name;
-		}
-
 		void CodeGenerator::Write(const std::vector<Coclass>& coclasses)
 		{
 			for (auto& coclass : coclasses)
@@ -719,7 +712,7 @@ namespace Com
 						if (!first)
 							out << ", ";
 						first = false;
-						Write(argument);
+						out << Format(argument);
 					}
 					out << ")";
 					switch (definition)
@@ -848,7 +841,7 @@ namespace Com
 						if (!first)
 							out << ", ";
 						first = false;
-						Write(argument);
+						out << Format(argument);
 					}
 					out << ");" << std::endl;
 				}
@@ -861,21 +854,8 @@ namespace Com
 			out << "namespace Com" << std::endl
 				<< "{" << std::endl;
 			for (auto& iface : interfaces)
-				WriteComTypeInfo(libraryName, iface);
+				out << Format(iface, InterfaceFormat::AsTypeInfoSpecialization, "", libraryName);
 			out << "}" << std::endl;
-		}
-
-		void CodeGenerator::WriteComTypeInfo(const std::string& libraryName, const Interface& iface)
-		{
-			auto interfaceName = libraryName + "::" + iface.Name;
-			out << "	template <>" << std::endl
-				<< "	class TypeInfo<" << interfaceName << "*>" << std::endl
-				<< "	{" << std::endl
-				<< "	public:" << std::endl
-				<< "		using In = InValue<" << interfaceName << "*, " << interfaceName << "Ptr>;" << std::endl
-				<< "		using InOut = InOutValue<" << interfaceName << "*, " << interfaceName << "Ptr>;" << std::endl
-				<< "		using Retval = RetvalValue<" << interfaceName << "Ptr, " << interfaceName << "*>;" << std::endl
-				<< "	};" << std::endl;
 		}
 
 		void CodeGenerator::WriteWrapperFunctions(const Interface& iface)
@@ -901,72 +881,13 @@ namespace Com
 				if (function.VtblOffset == 0 && function.IsDispatchOnly)
 					WriteWrapperDispatch(iface.Name, function);
 				else if (function.VtblOffset >= iface.VtblOffset)
-					WriteWrapperFunction(iface.Name, function);
+					out << Format(function, FunctionFormat::AsWrapperImplementation, implement ? "raw_" : "", iface.Name);
 			}
 		}
 
 		void CodeGenerator::WriteWrapperDispatch(const std::string& interfaceName, const Function& function)
 		{
 			//TODO: dispatch only implementation
-		}
-
-		void CodeGenerator::WriteWrapperFunction(const std::string& interfaceName, const Function& function)
-		{
-			out << "	template <typename Interface>" << std::endl
-				<< "	inline ";
-			auto hasRetval = !function.ArgList.empty() && function.ArgList.back().Retval;
-			if (hasRetval)
-				out << Format(function.ArgList.back().Type, TypeFormat::AsWrapper);
-			else
-				out << "void";
-			out << " " << interfaceName << "PtrT<Interface>::" << function.Name << "(";
-			auto first = true;
-			for (auto& argument : function.ArgList)
-			{
-				if (argument.Retval)
-					break;
-				if (!first)
-					out << ", ";
-				first = false;
-				Write(argument);
-			}
-			out << ")" << std::endl
-				<< "	{" << std::endl;
-			if (hasRetval)
-			{
-				out << "		";
-				out << Format(function.ArgList.back().Type, TypeFormat::AsWrapper);
-				out << " retval";
-				out << Format(function.ArgList.back().Type, TypeFormat::AsInitializer);
-				out << ";" << std::endl;
-			}
-			out << "		";
-			if (function.Retval.TypeEnum == TypeEnum::Hresult)
-				out << "auto hr = ";
-			out << "p->";
-			if (implement)
-				out << "raw_";
-			out << function.Name << "(";
-			first = true;
-			for (auto& argument : function.ArgList)
-			{
-				if (!first)
-					out << ", ";
-				first = false;
-				if (argument.In && argument.Out)
-					out << "Com::PutRef(";
-				else if (argument.In)
-					out << "Com::Put(";
-				else
-					out << "Com::Get(";
-				out << argument.Name << ")";
-			}
-			out << ");" << std::endl;
-			if (function.Retval.TypeEnum == TypeEnum::Hresult)
-				out << "		Com::CheckError(hr, __FUNCTION__, \"\");" << std::endl;
-			if (hasRetval)
-				out << "		return retval;" << std::endl;
-			out << "	}" << std::endl;
 		}
 
 		std::string CodeGenerator::GetWrapperBase(const Interface& iface)

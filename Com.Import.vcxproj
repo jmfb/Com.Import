@@ -155,6 +155,7 @@
     <ClCompile Include="LibraryLoader.cpp" />
     <ClCompile Include="Loader.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="ParameterFormatter.cpp" />
     <ClCompile Include="RecordFormatter.cpp" />
     <ClCompile Include="RecordSorter.cpp" />
     <ClCompile Include="TypeDescription.cpp" />
@@ -189,6 +190,7 @@
     <ClInclude Include="InterfaceFormatter.h" />
     <ClInclude Include="LibraryLoader.h" />
     <ClInclude Include="Loader.h" />
+    <ClInclude Include="ParameterFormatter.h" />
     <ClInclude Include="RecordFormatter.h" />
     <ClInclude Include="RecordSorter.h" />
     <ClInclude Include="TypeDescription.h" />

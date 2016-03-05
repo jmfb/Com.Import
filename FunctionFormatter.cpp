@@ -1,12 +1,17 @@
 #include "FunctionFormatter.h"
 #include "TypeFormatter.h"
+#include "ParameterFormatter.h"
 
 namespace Com
 {
 	namespace Import
 	{
-		FunctionFormatter::FunctionFormatter(const Function& value, FunctionFormat format, const std::string& prefix)
-			: value(value), format(format), prefix(prefix)
+		FunctionFormatter::FunctionFormatter(
+			const Function& value,
+			FunctionFormat format,
+			const std::string& prefix,
+			const std::string& scope)
+			: value(value), format(format), prefix(prefix), scope(scope)
 		{
 		}
 
@@ -16,6 +21,9 @@ namespace Com
 			{
 			case FunctionFormat::AsAbstract:
 				WriteAsAbstract(out);
+				break;
+			case FunctionFormat::AsWrapperImplementation:
+				WriteAsWrapperImplementation(out);
 				break;
 			}
 			return out;
@@ -45,9 +53,71 @@ namespace Com
 			out << ") = 0;" << std::endl;
 		}
 
-		FunctionFormatter Format(const Function& value, FunctionFormat format, const std::string& prefix)
+		void FunctionFormatter::WriteAsWrapperImplementation(std::ostream& out) const
 		{
-			return{ value, format, prefix };
+			out << "	template <typename Interface>" << std::endl
+				<< "	inline ";
+			auto hasRetval = !value.ArgList.empty() && value.ArgList.back().Retval;
+			if (hasRetval)
+				out << Format(value.ArgList.back().Type, TypeFormat::AsWrapper);
+			else
+				out << "void";
+			out << " " << scope << "PtrT<Interface>::" << value.Name << "(";
+			auto first = true;
+			for (auto& argument : value.ArgList)
+			{
+				if (argument.Retval)
+					break;
+				if (!first)
+					out << ", ";
+				first = false;
+				out << Format(argument);
+			}
+			out << ")" << std::endl
+				<< "	{" << std::endl;
+			if (hasRetval)
+			{
+				out << "		";
+				out << Format(value.ArgList.back().Type, TypeFormat::AsWrapper);
+				out << " retval";
+				out << Format(value.ArgList.back().Type, TypeFormat::AsInitializer);
+				out << ";" << std::endl;
+			}
+			out << "		";
+			if (value.Retval.TypeEnum == TypeEnum::Hresult)
+				out << "auto hr = ";
+			out << "p->";
+			out << prefix;
+			out << value.Name << "(";
+			first = true;
+			for (auto& argument : value.ArgList)
+			{
+				if (!first)
+					out << ", ";
+				first = false;
+				if (argument.In && argument.Out)
+					out << "Com::PutRef(";
+				else if (argument.In)
+					out << "Com::Put(";
+				else
+					out << "Com::Get(";
+				out << argument.Name << ")";
+			}
+			out << ");" << std::endl;
+			if (value.Retval.TypeEnum == TypeEnum::Hresult)
+				out << "		Com::CheckError(hr, __FUNCTION__, \"\");" << std::endl;
+			if (hasRetval)
+				out << "		return retval;" << std::endl;
+			out << "	}" << std::endl;
+		}
+
+		FunctionFormatter Format(
+			const Function& value,
+			FunctionFormat format,
+			const std::string& prefix,
+			const std::string& scope)
+		{
+			return{ value, format, prefix, scope };
 		}
 	}
 }
