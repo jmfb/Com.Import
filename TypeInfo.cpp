@@ -3,6 +3,7 @@
 #include "FunctionDescription.h"
 #include "Loader.h"
 #include <algorithm>
+#include <map>
 
 namespace Com
 {
@@ -108,9 +109,19 @@ namespace Com
 
 		Coclass TypeInfo::ToCoclass() const
 		{
+			std::map<std::string, int> countByFunction;
 			Coclass result{ GetName(), GetId(),{} };
 			for (auto index = 0u; index < attributes->cImplTypes; ++index)
-				result.Interfaces.push_back(GetInterface(index));
+			{
+				auto iface = GetInterface(index);
+				result.Interfaces.push_back(iface);
+				for (auto& function : iface.Functions)
+					if (function.VtblOffset >= iface.VtblOffset && function.Retval.TypeEnum == TypeEnum::Hresult)
+						++countByFunction[function.Name];
+			}
+			for (auto& iface : result.Interfaces)
+				if (std::any_of(iface.Functions.begin(), iface.Functions.end(), [&](auto f){ return countByFunction[f.Name] > 1; }))
+					iface.IsConflicting = true;
 			return result;
 		}
 
@@ -177,7 +188,7 @@ namespace Com
 
 		Interface TypeInfo::ToInterface() const
 		{
-			Interface result{ GetId(), "IID_", GetName(), "IUnknown", IID_IUnknown, false, 12,{} };
+			Interface result{ GetId(), "IID_", GetName(), "IUnknown", IID_IUnknown, false, 12, {}, false };
 			if (GetTypeKind() == TKIND_DISPATCH)
 			{
 				result.Base = "IDispatch";

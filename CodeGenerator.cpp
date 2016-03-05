@@ -42,8 +42,9 @@ namespace Com
 
 		void CodeGenerator::Generate(const Library& library, bool implement)
 		{
-			std::cout << "Generating header: " << library.HeaderFileName << std::endl;
-			CodeGenerator{ std::ofstream{ library.HeaderFileName.c_str() }, implement }.Write(library);
+			auto fileName = library.OutputName + ".h";
+			std::cout << "Generating header: " << fileName << std::endl;
+			CodeGenerator{ std::ofstream{ fileName.c_str() }, implement }.Write(library);
 			if (!implement)
 				return;
 			GenerateMain(library);
@@ -105,18 +106,16 @@ namespace Com
 			std::cout << "Generating header: " << fileName << std::endl;
 			std::ofstream out{ fileName.c_str() };
 			out << "#pragma once" << std::endl
-				<< "#include \"" << library.HeaderFileName << "\"" << std::endl
+				<< "#include \"" << library.OutputName << ".h\"" << std::endl
 				<< std::endl
 				<< "namespace " << library.Name << std::endl
 				<< "{" << std::endl
 				<< "	class " << coclass.Name << " : public " << coclass.Name << "Coclass<" << coclass.Name << ">" << std::endl
 				<< "	{" << std::endl
 				<< "	public:" << std::endl;
-			auto conflictingInterfaces = GetConflictingInterfaces(coclass);
 			for (auto& iface : coclass.Interfaces)
 				CodeGenerator(out, true).WriteNativeFunctions(
 					iface,
-					conflictingInterfaces.find(iface.Name) != conflictingInterfaces.end(),
 					FunctionDefinition::Prototype,
 					coclass.Name);
 			out << "	};" << std::endl
@@ -132,11 +131,9 @@ namespace Com
 				<< std::endl
 				<< "namespace " << library.Name << std::endl
 				<< "{" << std::endl;
-			auto conflictingInterfaces = GetConflictingInterfaces(coclass);
 			for (auto& iface : coclass.Interfaces)
 				CodeGenerator(out, true).WriteNativeFunctions(
 					iface,
-					conflictingInterfaces.find(iface.Name) != conflictingInterfaces.end(),
 					FunctionDefinition::Definition,
 					coclass.Name);
 			out << "}" << std::endl;
@@ -147,7 +144,7 @@ namespace Com
 			auto fileName = library.Name + ".def";
 			std::cout << "Generate module definition: " << fileName << std::endl;
 			std::ofstream out{ fileName.c_str() };
-			out << "LIBRARY \"" << GetLibraryOutputName(library) << "\"" << std::endl
+			out << "LIBRARY \"" << library.OutputName << "\"" << std::endl
 				<< "EXPORTS" << std::endl
 				<< "	DllCanUnloadNow private" << std::endl
 				<< "	DllGetClassObject private" << std::endl;
@@ -202,7 +199,7 @@ namespace Com
 				<< std::endl
 				<< "3 TEXTINCLUDE " << std::endl
 				<< "BEGIN" << std::endl
-				<< "    \"1 TYPELIB \"\"" << GetLibraryOutputName(library) << ".tlb\"\"\\r\\n\"" << std::endl
+				<< "    \"1 TYPELIB \"\"" << library.OutputName << ".tlb\"\"\\r\\n\"" << std::endl
 				<< "    \"\\0\"" << std::endl
 				<< "END" << std::endl
 				<< std::endl
@@ -234,9 +231,9 @@ namespace Com
 				<< "            VALUE \"CompanyName\", \"TODO\"" << std::endl
 				<< "            VALUE \"FileDescription\", \"" << library.Name << "\"" << std::endl
 				<< "            VALUE \"FileVersion\", \"1.0.0.0\"" << std::endl
-				<< "            VALUE \"InternalName\", \"" << GetLibraryOutputName(library) << ".dll\"" << std::endl
+				<< "            VALUE \"InternalName\", \"" << library.OutputName << ".dll\"" << std::endl
 				<< "            VALUE \"LegalCopyright\", \"Copyright(C) " << year << "\"" << std::endl
-				<< "            VALUE \"OriginalFilename\", \"" << GetLibraryOutputName(library) << ".dll\"" << std::endl
+				<< "            VALUE \"OriginalFilename\", \"" << library.OutputName << ".dll\"" << std::endl
 				<< "            VALUE \"ProductName\", \"" << library.Name << "\"" << std::endl
 				<< "            VALUE \"ProductVersion\", \"1.0.0.0\"" << std::endl
 				<< "        END" << std::endl
@@ -257,7 +254,7 @@ namespace Com
 				<< "//" << std::endl
 				<< "// Generated from the TEXTINCLUDE 3 resource." << std::endl
 				<< "//" << std::endl
-				<< "1 TYPELIB \"" << GetLibraryOutputName(library) << ".tlb\"" << std::endl
+				<< "1 TYPELIB \"" << library.OutputName << ".tlb\"" << std::endl
 				<< std::endl
 				<< "/////////////////////////////////////////////////////////////////////////////" << std::endl
 				<< "#endif    // not APSTUDIO_INVOKED" << std::endl
@@ -294,7 +291,7 @@ namespace Com
 
 		void CodeGenerator::GenerateManifest(const Library& library)
 		{
-			auto fileName = GetLibraryOutputName(library) + ".manifest";
+			auto fileName = library.OutputName + ".manifest";
 			std::cout << "Generating manifest: " << fileName << std::endl;
 			std::ofstream out{ fileName.c_str() };
 			out << "<?xml version=\"1.0\" encoding=\"utf-8\" standalone=\"yes\"?>" << std::endl
@@ -303,9 +300,9 @@ namespace Com
 				<< "	manifestVersion=\"1.0\">" << std::endl
 				<< "	<assemblyIdentity" << std::endl
 				<< "		type=\"win32\"" << std::endl
-				<< "		name=\"" << GetLibraryOutputName(library) << "\"" << std::endl
+				<< "		name=\"" << library.OutputName << "\"" << std::endl
 				<< "		version=\"1.0.0.0\" />" << std::endl
-				<< "	<file name=\"" << GetLibraryOutputName(library) << ".dll\">" << std::endl;
+				<< "	<file name=\"" << library.OutputName << ".dll\">" << std::endl;
 			for (auto& coclass : library.Coclasses)
 			{
 				out << "		<comClass" << std::endl
@@ -397,12 +394,12 @@ namespace Com
 				<< "  <Import Project=\"$(VCTargetsPath)\\Microsoft.Cpp.props\" />" << std::endl
 				<< "  <PropertyGroup Condition=\"'$(Configuration)|$(Platform)'=='Debug|Win32'\">" << std::endl
 				<< "    <LinkIncremental>true</LinkIncremental>" << std::endl
-				<< "    <TargetName>" << GetLibraryOutputName(result.PrimaryLibrary) << "</TargetName>" << std::endl
+				<< "    <TargetName>" << result.PrimaryLibrary.OutputName << "</TargetName>" << std::endl
 				<< "    <GenerateManifest>true</GenerateManifest>" << std::endl
 				<< "  </PropertyGroup>" << std::endl
 				<< "  <PropertyGroup Condition=\"'$(Configuration)|$(Platform)'=='Release|Win32'\">" << std::endl
 				<< "    <LinkIncremental>false</LinkIncremental>" << std::endl
-				<< "    <TargetName>" << GetLibraryOutputName(result.PrimaryLibrary) << "</TargetName>" << std::endl
+				<< "    <TargetName>" << result.PrimaryLibrary.OutputName << "</TargetName>" << std::endl
 				<< "    <GenerateManifest>false</GenerateManifest>" << std::endl
 				<< "  </PropertyGroup>" << std::endl
 				<< "  <ItemDefinitionGroup Condition=\"'$(Configuration)|$(Platform)'=='Debug|Win32'\">" << std::endl
@@ -419,7 +416,7 @@ namespace Com
 				<< "      <EnableUAC>false</EnableUAC>" << std::endl
 				<< "    </Link>" << std::endl
 				<< "    <Manifest>" << std::endl
-				<< "      <AdditionalManifestFiles>" << GetLibraryOutputName(result.PrimaryLibrary) << ".manifest</AdditionalManifestFiles>" << std::endl
+				<< "      <AdditionalManifestFiles>" << result.PrimaryLibrary.OutputName << ".manifest</AdditionalManifestFiles>" << std::endl
 				<< "    </Manifest>" << std::endl
 				<< "  </ItemDefinitionGroup>" << std::endl
 				<< "  <ItemDefinitionGroup Condition=\"'$(Configuration)|$(Platform)'=='Release|Win32'\">" << std::endl
@@ -438,22 +435,22 @@ namespace Com
 				<< "      <ModuleDefinitionFile>" << result.PrimaryLibrary.Name << ".def</ModuleDefinitionFile>" << std::endl
 				<< "    </Link>" << std::endl
 				<< "    <Manifest>" << std::endl
-				<< "      <AdditionalManifestFiles>" << GetLibraryOutputName(result.PrimaryLibrary) << ".manifest</AdditionalManifestFiles>" << std::endl
+				<< "      <AdditionalManifestFiles>" << result.PrimaryLibrary.OutputName << ".manifest</AdditionalManifestFiles>" << std::endl
 				<< "    </Manifest>" << std::endl
 				<< "  </ItemDefinitionGroup>" << std::endl
 				<< "  <ItemGroup>" << std::endl
-				<< "    <ClInclude Include=\"" << result.PrimaryLibrary.HeaderFileName << "\" />" << std::endl;
+				<< "    <ClInclude Include=\"" << result.PrimaryLibrary.OutputName << ".h\" />" << std::endl;
 			for (auto& library : result.ReferencedLibraries)
-				out << "    <ClInclude Include=\"" << library.HeaderFileName << "\" />" << std::endl;
+				out << "    <ClInclude Include=\"" << library.OutputName << ".h\" />" << std::endl;
 			for (auto& coclass : result.PrimaryLibrary.Coclasses)
 				out << "    <ClInclude Include=\"" << coclass.Name << ".h\" />" << std::endl;
 			out << "    <ClInclude Include=\"resource.h\" />" << std::endl
 				<< "  </ItemGroup>" << std::endl
 				<< "  <ItemGroup>" << std::endl
-				<< "    <Manifest Include=\"" << GetLibraryOutputName(result.PrimaryLibrary) << ".manifest\" />" << std::endl
+				<< "    <Manifest Include=\"" << result.PrimaryLibrary.OutputName << ".manifest\" />" << std::endl
 				<< "  </ItemGroup>" << std::endl
 				<< "  <ItemGroup>" << std::endl
-				<< "    <None Include=\"" << GetLibraryOutputName(result.PrimaryLibrary) << ".tlb\" />" << std::endl
+				<< "    <None Include=\"" << result.PrimaryLibrary.OutputName << ".tlb\" />" << std::endl
 				<< "    <None Include=\"" << result.PrimaryLibrary.Name << ".def\" />" << std::endl
 				<< "    <None Include=\"packages.config\" />" << std::endl
 				<< "  </ItemGroup>" << std::endl
@@ -480,11 +477,11 @@ namespace Com
 				<< "    <ClInclude Include=\"resource.h\">" << std::endl
 				<< "      <Filter>Resources</Filter>" << std::endl
 				<< "    </ClInclude>" << std::endl
-				<< "    <ClInclude Include=\"" << result.PrimaryLibrary.HeaderFileName << "\">" << std::endl
+				<< "    <ClInclude Include=\"" << result.PrimaryLibrary.OutputName << ".h\">" << std::endl
 				<< "      <Filter>Imports</Filter>" << std::endl
 				<< "    </ClInclude>" << std::endl;
 			for (auto& library : result.ReferencedLibraries)
-				out << "    <ClInclude Include=\"" << library.HeaderFileName << "\">" << std::endl
+				out << "    <ClInclude Include=\"" << library.OutputName << ".h\">" << std::endl
 					<< "      <Filter>Imports</Filter>" << std::endl
 					<< "    </ClInclude>" << std::endl;
 			for (auto& coclass : result.PrimaryLibrary.Coclasses)
@@ -494,7 +491,7 @@ namespace Com
 			out << "  </ItemGroup>" << std::endl
 				<< "  <ItemGroup>" << std::endl
 				<< "    <None Include=\"packages.config\" />" << std::endl
-				<< "    <None Include=\"" << GetLibraryOutputName(result.PrimaryLibrary) << ".tlb\">" << std::endl
+				<< "    <None Include=\"" << result.PrimaryLibrary.OutputName << ".tlb\">" << std::endl
 				<< "      <Filter>Resources</Filter>" << std::endl
 				<< "    </None>" << std::endl
 				<< "    <None Include=\"" << result.PrimaryLibrary.Name << ".def\">" << std::endl
@@ -520,7 +517,7 @@ namespace Com
 				<< "    </Filter>" << std::endl
 				<< "  </ItemGroup>" << std::endl
 				<< "  <ItemGroup>" << std::endl
-				<< "    <Manifest Include=\"" << GetLibraryOutputName(result.PrimaryLibrary) << ".manifest\">" << std::endl
+				<< "    <Manifest Include=\"" << result.PrimaryLibrary.OutputName << ".manifest\">" << std::endl
 				<< "      <Filter>Resources</Filter>" << std::endl
 				<< "    </Manifest>" << std::endl
 				<< "  </ItemGroup>" << std::endl
@@ -530,11 +527,6 @@ namespace Com
 				<< "    </ResourceCompile>" << std::endl
 				<< "  </ItemGroup>" << std::endl
 				<< "</Project>" << std::endl;
-		}
-
-		std::string CodeGenerator::GetLibraryOutputName(const Library& library)
-		{
-			return library.HeaderFileName.substr(0, library.HeaderFileName.rfind('.'));
 		}
 
 		void CodeGenerator::Write(const Library& library)
@@ -619,10 +611,9 @@ namespace Com
 
 		void CodeGenerator::Write(const Coclass& coclass)
 		{
-			auto conflictingInterfaces = GetConflictingInterfaces(coclass);
 			for (auto& iface : coclass.Interfaces)
 			{
-				if (conflictingInterfaces.find(iface.Name) != conflictingInterfaces.end())
+				if (iface.IsConflicting)
 				{
 					out << "	class __declspec(uuid(\"" << Format(iface.Iid, GuidFormat::AsString) << "\")) "
 						<< iface.Name << "_" << coclass.Name << " : public " << iface.Name << std::endl
@@ -680,7 +671,7 @@ namespace Com
 			for (auto& iface : coclass.Interfaces)
 			{
 				out << ", " << iface.Name;
-				if (conflictingInterfaces.find(iface.Name) != conflictingInterfaces.end())
+				if (iface.IsConflicting)
 					out << "_" << coclass.Name;
 			}
 			out << ">" << std::endl
@@ -689,17 +680,15 @@ namespace Com
 			for (auto& iface : coclass.Interfaces)
 				WriteNativeFunctions(
 					iface,
-					conflictingInterfaces.find(iface.Name) != conflictingInterfaces.end(),
 					FunctionDefinition::Abstract,
 					coclass.Name);
 			for (auto& iface : coclass.Interfaces)
-				WriteRawFunctions(iface, conflictingInterfaces.find(iface.Name) != conflictingInterfaces.end());
+				WriteRawFunctions(iface);
 			out << "	};" << std::endl;
 		}
 
 		void CodeGenerator::WriteNativeFunctions(
 			const Interface& iface,
-			bool interfaceSpecificFunctions,
 			FunctionDefinition definition,
 			const std::string& className)
 		{
@@ -719,7 +708,7 @@ namespace Com
 					out << " ";
 					if (definition == FunctionDefinition::Definition)
 						out << className << "::";
-					if (interfaceSpecificFunctions)
+					if (iface.IsConflicting)
 						out << iface.Name << "_";
 					out << function.Name << "(";
 					auto first = true;
@@ -753,14 +742,14 @@ namespace Com
 			}
 		}
 
-		void CodeGenerator::WriteRawFunctions(const Interface& iface, bool interfaceSpecificFunctions)
+		void CodeGenerator::WriteRawFunctions(const Interface& iface)
 		{
 			for (auto& function : iface.Functions)
 			{
 				if (function.VtblOffset >= iface.VtblOffset && function.Retval.TypeEnum == TypeEnum::Hresult)
 				{
 					out << "		HRESULT __stdcall ";
-					if (interfaceSpecificFunctions)
+					if (iface.IsConflicting)
 						out << iface.Name << "_";
 					out << "raw_" << function.Name << "(";
 					auto first = true;
@@ -785,7 +774,7 @@ namespace Com
 						else
 							out << "Com::Retval(" << retval.Name << ") = ";
 					}
-					if (interfaceSpecificFunctions)
+					if (iface.IsConflicting)
 						out << iface.Name << "_";
 					out << function.Name << "(";
 					first = true;
@@ -985,20 +974,6 @@ namespace Com
 			if (iface.Base == "IUnknown" || iface.Base == "IDispatch")
 				return "Com::Pointer<Interface>";
 			return iface.Base + "PtrT<Interface>";
-		}
-
-		std::set<std::string> CodeGenerator::GetConflictingInterfaces(const Coclass& coclass)
-		{
-			std::map<std::string, int> countByFunction;
-			for (auto& iface : coclass.Interfaces)
-				for (auto& function : iface.Functions)
-					if (function.VtblOffset >= iface.VtblOffset && function.Retval.TypeEnum == TypeEnum::Hresult)
-						++countByFunction[function.Name];
-			std::set<std::string> conflictingInterfaces;
-			for (auto& iface : coclass.Interfaces)
-				if (std::any_of(iface.Functions.begin(), iface.Functions.end(), [&](auto f){ return countByFunction[f.Name] > 1; }))
-					conflictingInterfaces.insert(iface.Name);
-			return conflictingInterfaces;
 		}
 	}
 };

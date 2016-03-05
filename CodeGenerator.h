@@ -45,7 +45,6 @@ namespace Com
 			static void GenerateSolution(const LoadLibraryResult& result);
 			static void GenerateProject(const LoadLibraryResult& result);
 			static void GenerateProjectFilters(const LoadLibraryResult& result);
-			static std::string GetLibraryOutputName(const Library& library);
 			void Write(const Library& library);
 			void Write(const std::vector<Enum>& enums);
 			void ForwardDeclare(const std::vector<Interface>& interfaces);
@@ -59,10 +58,9 @@ namespace Com
 			void Write(const Coclass& coclass);
 			void WriteNativeFunctions(
 				const Interface& iface,
-				bool interfaceSpecificFunctions,
 				FunctionDefinition definition,
 				const std::string& className);
-			void WriteRawFunctions(const Interface& iface, bool interfaceSpecificFunctions);
+			void WriteRawFunctions(const Interface& iface);
 			void WriteWrappers(const std::vector<Interface>& interfaces);
 			void WriteWrapper(const Interface& iface);
 			void WriteComTypeInfo(const std::string& libraryName, const std::vector<Interface>& interfaces);
@@ -71,7 +69,6 @@ namespace Com
 			void WriteWrapperDispatch(const std::string& interfaceName, const Function& function);
 			void WriteWrapperFunction(const std::string& interfaceName, const Function& function);
 			static std::string GetWrapperBase(const Interface& iface);
-			static std::set<std::string> GetConflictingInterfaces(const Coclass& coclass);
 		};
 	}
 };

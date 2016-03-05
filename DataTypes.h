@@ -110,6 +110,7 @@ namespace Com
 			bool SupportsDispatch;
 			unsigned int VtblOffset;
 			std::vector<Function> Functions;
+			bool IsConflicting;
 		};
 
 		struct Coclass
@@ -130,7 +131,7 @@ namespace Com
 		struct Library
 		{
 			std::string Name;
-			std::string HeaderFileName;
+			std::string OutputName;
 			GUID Libid;
 			WORD MajorVersion;
 			WORD MinorVersion;
