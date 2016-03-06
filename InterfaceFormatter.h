@@ -15,6 +15,9 @@ namespace Com
 			AsWrapper,
 			AsWrapperFunctions,
 			AsRawFunctions,
+			AsCoclassAbstractFunctions,
+			AsCoclassFunctionPrototypes,
+			AsCoclassFunctionImplementations,
 			AsTypeInfoSpecialization
 		};
 
@@ -44,6 +47,9 @@ namespace Com
 			void WriteAsWrapper(std::ostream& out) const;
 			void WriteAsWrapperFunctions(std::ostream& out) const;
 			void WriteAsRawFunctions(std::ostream& out) const;
+			void WriteAsCoclassAbstractFunctions(std::ostream& out) const;
+			void WriteAsCoclassFunctionPrototypes(std::ostream& out) const;
+			void WriteAsCoclassFunctionImplementations(std::ostream& out) const;
 			void WriteAsTypeInfoSpecialization(std::ostream& out) const;
 
 			std::string InterfaceFormatter::GetWrapperBase() const;

@@ -40,6 +40,15 @@ namespace Com
 			case InterfaceFormat::AsRawFunctions:
 				WriteAsRawFunctions(out);
 				break;
+			case InterfaceFormat::AsCoclassAbstractFunctions:
+				WriteAsCoclassAbstractFunctions(out);
+				break;
+			case InterfaceFormat::AsCoclassFunctionPrototypes:
+				WriteAsCoclassFunctionPrototypes(out);
+				break;
+			case InterfaceFormat::AsCoclassFunctionImplementations:
+				WriteAsCoclassFunctionImplementations(out);
+				break;
 			case InterfaceFormat::AsTypeInfoSpecialization:
 				WriteAsTypeInfoSpecialization(out);
 				break;
@@ -156,6 +165,27 @@ namespace Com
 			for (auto& function : value.Functions)
 				if (function.VtblOffset >= value.VtblOffset && function.Retval.TypeEnum == TypeEnum::Hresult)
 					out << Format(function, FunctionFormat::AsRawImplementation, value.IsConflicting ? value.Name + "_" : "");
+		}
+
+		void InterfaceFormatter::WriteAsCoclassAbstractFunctions(std::ostream& out) const
+		{
+			for (auto& function : value.Functions)
+				if (function.VtblOffset >= value.VtblOffset && function.Retval.TypeEnum == TypeEnum::Hresult)
+					out << Format(function, FunctionFormat::AsCoclassAbstract, value.IsConflicting ? value.Name + "_" : "");
+		}
+
+		void InterfaceFormatter::WriteAsCoclassFunctionPrototypes(std::ostream& out) const
+		{
+			for (auto& function : value.Functions)
+				if (function.VtblOffset >= value.VtblOffset && function.Retval.TypeEnum == TypeEnum::Hresult)
+					out << Format(function, FunctionFormat::AsCoclassPrototype, value.IsConflicting ? value.Name + "_" : "");
+		}
+
+		void InterfaceFormatter::WriteAsCoclassFunctionImplementations(std::ostream& out) const
+		{
+			for (auto& function : value.Functions)
+				if (function.VtblOffset >= value.VtblOffset && function.Retval.TypeEnum == TypeEnum::Hresult)
+					out << Format(function, FunctionFormat::AsCoclassImplementation, value.IsConflicting ? value.Name + "_" : "", scope);
 		}
 
 		void InterfaceFormatter::WriteAsTypeInfoSpecialization(std::ostream& out) const

@@ -37,6 +37,15 @@ namespace Com
 			case FunctionFormat::AsRawImplementation:
 				WriteAsRawImplementation(out);
 				break;
+			case FunctionFormat::AsCoclassAbstract:
+				WriteAsCoclassAbstract(out);
+				break;
+			case FunctionFormat::AsCoclassPrototype:
+				WriteAsCoclassPrototype(out);
+				break;
+			case FunctionFormat::AsCoclassImplementation:
+				WriteAsCoclassImplementation(out);
+				break;
 			}
 			return out;
 		}
@@ -53,40 +62,18 @@ namespace Com
 				out << "//";
 			out << "virtual " << Format(value.Retval, TypeFormat::AsNative)
 				<< " __stdcall " << prefix << value.Name << "(";
-			auto first = true;
-			for (auto& argument : value.ArgList)
-			{
-				if (!first)
-					out << ", ";
-				first = false;
-				out << Format(argument.Type, TypeFormat::AsNative);
-				out << " " << argument.Name;
-			}
+			WriteArguments(out, ParameterFormat::AsNative, false);
 			out << ") = 0;" << std::endl;
 		}
 
 		void FunctionFormatter::WriteAsResolveNameConflict(std::ostream& out) const
 		{
 			out << "		" << Format(value.Retval, TypeFormat::AsNative) << " __stdcall raw_" << value.Name << "(";
-			auto first = true;
-			for (auto& argument : value.ArgList)
-			{
-				if (!first)
-					out << ", ";
-				first = false;
-				out << Format(argument, ParameterFormat::AsNative);
-			}
+			WriteArguments(out, ParameterFormat::AsNative, false);
 			out << ") final" << std::endl
 				<< "		{" << std::endl
 				<< "			return " << prefix << "raw_" << value.Name << "(";
-			first = true;
-			for (auto& argument : value.ArgList)
-			{
-				if (!first)
-					out << ", ";
-				first = false;
-				out << argument.Name;
-			}
+			WriteArguments(out, ParameterFormat::AsName, false);
 			out << ");" << std::endl
 				<< "		}" << std::endl;
 		}
@@ -94,21 +81,12 @@ namespace Com
 		void FunctionFormatter::WriteAsWrapper(std::ostream& out) const
 		{
 			out << "		";
-			if (!value.ArgList.empty() && value.ArgList.back().Retval)
-				out << Format(value.ArgList.back().Type, TypeFormat::AsWrapper);
+			if (HasRetval())
+				out << Format(GetRetval().Type, TypeFormat::AsWrapper);
 			else
 				out << "void";
 			out << " " << value.Name << "(";
-			auto first = true;
-			for (auto& argument : value.ArgList)
-			{
-				if (argument.Retval)
-					break;
-				if (!first)
-					out << ", ";
-				first = false;
-				out << Format(argument, ParameterFormat::AsWrapper);
-			}
+			WriteArguments(out, ParameterFormat::AsWrapper, true);
 			out << ");" << std::endl;
 		}
 
@@ -116,30 +94,20 @@ namespace Com
 		{
 			out << "	template <typename Interface>" << std::endl
 				<< "	inline ";
-			auto hasRetval = !value.ArgList.empty() && value.ArgList.back().Retval;
-			if (hasRetval)
-				out << Format(value.ArgList.back().Type, TypeFormat::AsWrapper);
+			if (HasRetval())
+				out << Format(GetRetval().Type, TypeFormat::AsWrapper);
 			else
 				out << "void";
 			out << " " << scope << "PtrT<Interface>::" << value.Name << "(";
-			auto first = true;
-			for (auto& argument : value.ArgList)
-			{
-				if (argument.Retval)
-					break;
-				if (!first)
-					out << ", ";
-				first = false;
-				out << Format(argument, ParameterFormat::AsWrapper);
-			}
+			WriteArguments(out, ParameterFormat::AsWrapper, true);
 			out << ")" << std::endl
 				<< "	{" << std::endl;
-			if (hasRetval)
+			if (HasRetval())
 			{
 				out << "		";
-				out << Format(value.ArgList.back().Type, TypeFormat::AsWrapper);
+				out << Format(GetRetval().Type, TypeFormat::AsWrapper);
 				out << " retval";
-				out << Format(value.ArgList.back().Type, TypeFormat::AsInitializer);
+				out << Format(GetRetval().Type, TypeFormat::AsInitializer);
 				out << ";" << std::endl;
 			}
 			out << "		";
@@ -148,24 +116,11 @@ namespace Com
 			out << "p->";
 			out << prefix;
 			out << value.Name << "(";
-			first = true;
-			for (auto& argument : value.ArgList)
-			{
-				if (!first)
-					out << ", ";
-				first = false;
-				if (argument.In && argument.Out)
-					out << "Com::PutRef(";
-				else if (argument.In)
-					out << "Com::Put(";
-				else
-					out << "Com::Get(";
-				out << argument.Name << ")";
-			}
+			WriteArguments(out, ParameterFormat::AsWrapperArgument, false);
 			out << ");" << std::endl;
 			if (value.Retval.TypeEnum == TypeEnum::Hresult)
 				out << "		Com::CheckError(hr, __FUNCTION__, \"\");" << std::endl;
-			if (hasRetval)
+			if (HasRetval())
 				out << "		return retval;" << std::endl;
 			out << "	}" << std::endl;
 		}
@@ -178,40 +133,80 @@ namespace Com
 		void FunctionFormatter::WriteAsRawImplementation(std::ostream& out) const
 		{
 			out << "		HRESULT __stdcall " << prefix << "raw_" << value.Name << "(";
+			WriteArguments(out, ParameterFormat::AsNative, false);
+			out << ") final" << std::endl
+				<< "		{" << std::endl
+				<< "			return Com::RunAction([&](){ ";
+			if (HasRetval())
+				out << Format(GetRetval(), ParameterFormat::AsCoclassReturnValue) << " = ";
+			out << prefix << value.Name << "(";
+			WriteArguments(out, ParameterFormat::AsCoclassArgument, true);
+			out << "); });" << std::endl
+				<< "		}" << std::endl;
+		}
+
+		void FunctionFormatter::WriteAsCoclassAbstract(std::ostream& out) const
+		{
+			out << "		virtual ";
+			if (HasRetval())
+				out << Format(GetRetval().Type, TypeFormat::AsWrapper);
+			else
+				out << "void";
+			out << " " << prefix << value.Name << "(";
+			WriteArguments(out, ParameterFormat::AsWrapper, true);
+			out << ") = 0;" << std::endl;
+		}
+
+		void FunctionFormatter::WriteAsCoclassPrototype(std::ostream& out) const
+		{
+			out << "		";
+			if (HasRetval())
+				out << Format(GetRetval().Type, TypeFormat::AsWrapper);
+			else
+				out << "void";
+			out << " " << prefix << value.Name << "(";
+			WriteArguments(out, ParameterFormat::AsWrapper, true);
+			out << ") final;" << std::endl;
+		}
+
+		void FunctionFormatter::WriteAsCoclassImplementation(std::ostream& out) const
+		{
+			out << "	";
+			if (HasRetval())
+				out << Format(GetRetval().Type, TypeFormat::AsWrapper);
+			else
+				out << "void";
+			out << " " << scope << "::" << prefix << value.Name << "(";
+			WriteArguments(out, ParameterFormat::AsWrapper, true);
+			out << ")" << std::endl
+				<< "	{" << std::endl
+				<< "		throw Com::NotImplemented(__FUNCTION__);" << std::endl
+				<< "	}" << std::endl
+				<< std::endl;
+		}
+
+		bool FunctionFormatter::HasRetval() const
+		{
+			return !value.ArgList.empty() && value.ArgList.back().Retval;
+		}
+
+		const Parameter& FunctionFormatter::GetRetval() const
+		{
+			return value.ArgList.back();
+		}
+
+		void FunctionFormatter::WriteArguments(std::ostream& out, ParameterFormat format, bool skipReturnValue) const
+		{
 			auto first = true;
 			for (auto& argument : value.ArgList)
 			{
-				if (!first)
-					out << ", ";
-				first = false;
-				out << Format(argument, ParameterFormat::AsNative);
-			}
-			out << ") final" << std::endl
-				<< "		{" << std::endl
-				<< "			try" << std::endl
-				<< "			{" << std::endl
-				<< "				";
-			if (!value.ArgList.empty() && value.ArgList.back().Retval)
-				out << Format(value.ArgList.back(), ParameterFormat::AsWrapperReturnValue) << " = ";
-			out << prefix << value.Name << "(";
-			first = true;
-			for (auto& argument : value.ArgList)
-			{
-				if (argument.Retval)
+				if (skipReturnValue && argument.Retval)
 					break;
 				if (!first)
 					out << ", ";
 				first = false;
-				out << Format(argument, ParameterFormat::AsWrapperArgument);
+				out << Format(argument, format);
 			}
-			out << ");" << std::endl
-				<< "			}" << std::endl
-				<< "			catch (...)" << std::endl
-				<< "			{" << std::endl
-				<< "				return Com::HandleException();" << std::endl
-				<< "			}" << std::endl
-				<< "			return S_OK;" << std::endl
-				<< "		}" << std::endl;
 		}
 
 		FunctionFormatter Format(

@@ -14,17 +14,23 @@ namespace Com
 		{
 			switch (format)
 			{
+			case ParameterFormat::AsName:
+				WriteAsName(out);
+				break;
 			case ParameterFormat::AsNative:
 				WriteAsNative(out);
 				break;
 			case ParameterFormat::AsWrapper:
 				WriteAsWrapper(out);
 				break;
-			case ParameterFormat::AsWrapperReturnValue:
-				WriteAsWrapperReturnValue(out);
-				break;
 			case ParameterFormat::AsWrapperArgument:
 				WriteAsWrapperArgument(out);
+				break;
+			case ParameterFormat::AsCoclassReturnValue:
+				WriteAsCoclassReturnValue(out);
+				break;
+			case ParameterFormat::AsCoclassArgument:
+				WriteAsCoclassArgument(out);
 				break;
 			}
 			return out;
@@ -33,6 +39,11 @@ namespace Com
 		std::ostream& operator<<(std::ostream& out, const ParameterFormatter& value)
 		{
 			return value.Write(out);
+		}
+
+		void ParameterFormatter::WriteAsName(std::ostream& out) const
+		{
+			out << value.Name;
 		}
 
 		void ParameterFormatter::WriteAsNative(std::ostream& out) const
@@ -48,7 +59,18 @@ namespace Com
 			out << " " << value.Name;
 		}
 
-		void ParameterFormatter::WriteAsWrapperReturnValue(std::ostream& out) const
+		void ParameterFormatter::WriteAsWrapperArgument(std::ostream& out) const
+		{
+			if (value.In && value.Out)
+				out << "Com::PutRef";
+			else if (value.In)
+				out << "Com::Put";
+			else
+				out << "Com::Get";
+			out << "(" << value.Name << ")";
+		}
+
+		void ParameterFormatter::WriteAsCoclassReturnValue(std::ostream& out) const
 		{
 			if (value.Type.TypeEnum == TypeEnum::Int16)
 				out << "Com::CheckPointer";
@@ -57,7 +79,7 @@ namespace Com
 			out << "(" << value.Name << ")";
 		}
 
-		void ParameterFormatter::WriteAsWrapperArgument(std::ostream& out) const
+		void ParameterFormatter::WriteAsCoclassArgument(std::ostream& out) const
 		{
 			if (value.Out)
 			{

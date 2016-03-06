@@ -1,6 +1,7 @@
 #pragma once
 #include "DataTypes.h"
 #include <iostream>
+#include "ParameterFormatter.h"
 
 namespace Com
 {
@@ -13,7 +14,10 @@ namespace Com
 			AsWrapper,
 			AsWrapperImplementation,
 			AsWrapperDispatch,
-			AsRawImplementation
+			AsRawImplementation,
+			AsCoclassAbstract,
+			AsCoclassPrototype,
+			AsCoclassImplementation
 		};
 
 		class FunctionFormatter
@@ -41,6 +45,13 @@ namespace Com
 			void WriteAsWrapperImplementation(std::ostream& out) const;
 			void WriteAsWrapperDispatch(std::ostream& out) const;
 			void WriteAsRawImplementation(std::ostream& out) const;
+			void WriteAsCoclassAbstract(std::ostream& out) const;
+			void WriteAsCoclassPrototype(std::ostream& out) const;
+			void WriteAsCoclassImplementation(std::ostream& out) const;
+
+			bool HasRetval() const;
+			const Parameter& GetRetval() const;
+			void WriteArguments(std::ostream& out, ParameterFormat format, bool skipReturnValue) const;
 		};
 
 		FunctionFormatter Format(

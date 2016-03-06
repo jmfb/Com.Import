@@ -54,10 +54,6 @@ namespace Com
 			void Write(const std::vector<Identifier>& identifiers);
 			void Write(const std::vector<Coclass>& coclasses);
 			void Write(const Coclass& coclass);
-			void WriteNativeFunctions(
-				const Interface& iface,
-				FunctionDefinition definition,
-				const std::string& className);
 			void WriteWrappers(const std::vector<Interface>& interfaces);
 			void WriteComTypeInfo(const std::string& libraryName, const std::vector<Interface>& interfaces);
 		};

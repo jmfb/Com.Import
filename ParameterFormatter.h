@@ -8,10 +8,12 @@ namespace Com
 	{
 		enum class ParameterFormat
 		{
+			AsName,
 			AsNative,
 			AsWrapper,
-			AsWrapperReturnValue,
-			AsWrapperArgument
+			AsWrapperArgument,
+			AsCoclassReturnValue,
+			AsCoclassArgument
 		};
 
 		class ParameterFormatter
@@ -27,10 +29,12 @@ namespace Com
 			friend std::ostream& operator<<(std::ostream& out, const ParameterFormatter& value);
 
 		private:
+			void WriteAsName(std::ostream& out) const;
 			void WriteAsNative(std::ostream& out) const;
 			void WriteAsWrapper(std::ostream& out) const;
-			void WriteAsWrapperReturnValue(std::ostream& out) const;
 			void WriteAsWrapperArgument(std::ostream& out) const;
+			void WriteAsCoclassReturnValue(std::ostream& out) const;
+			void WriteAsCoclassArgument(std::ostream& out) const;
 		};
 
 		ParameterFormatter Format(const Parameter& value, ParameterFormat format);

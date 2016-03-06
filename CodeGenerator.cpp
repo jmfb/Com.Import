@@ -115,10 +115,7 @@ namespace Com
 				<< "	{" << std::endl
 				<< "	public:" << std::endl;
 			for (auto& iface : coclass.Interfaces)
-				CodeGenerator(out, true).WriteNativeFunctions(
-					iface,
-					FunctionDefinition::Prototype,
-					coclass.Name);
+				out << Format(iface, InterfaceFormat::AsCoclassFunctionPrototypes);
 			out << "	};" << std::endl
 				<< "}" << std::endl;
 		}
@@ -133,10 +130,7 @@ namespace Com
 				<< "namespace " << library.Name << std::endl
 				<< "{" << std::endl;
 			for (auto& iface : coclass.Interfaces)
-				CodeGenerator(out, true).WriteNativeFunctions(
-					iface,
-					FunctionDefinition::Definition,
-					coclass.Name);
+				out << Format(iface, InterfaceFormat::AsCoclassFunctionImplementations, "", coclass.Name);
 			out << "}" << std::endl;
 		}
 
@@ -286,7 +280,7 @@ namespace Com
 			std::ofstream{ fileName }
 				<< "<?xml version=\"1.0\" encoding=\"utf-8\"?>" << std::endl
 				<< "<packages>" << std::endl
-				<< "	<package id=\"Jmfb.Com\" version=\"1.0.5\" targetFramework=\"native\" />" << std::endl
+				<< "	<package id=\"Jmfb.Com\" version=\"1.0.6\" targetFramework=\"native\" />" << std::endl
 				<< "</packages>" << std::endl;
 		}
 
@@ -614,68 +608,10 @@ namespace Com
 				<< "	{" << std::endl
 				<< "	public:" << std::endl;
 			for (auto& iface : coclass.Interfaces)
-				WriteNativeFunctions(
-					iface,
-					FunctionDefinition::Abstract,
-					coclass.Name);
+				out << Format(iface, InterfaceFormat::AsCoclassAbstractFunctions);
 			for (auto& iface : coclass.Interfaces)
 				out << Format(iface, InterfaceFormat::AsRawFunctions);
 			out << "	};" << std::endl;
-		}
-
-		void CodeGenerator::WriteNativeFunctions(
-			const Interface& iface,
-			FunctionDefinition definition,
-			const std::string& className)
-		{
-			for (auto& function : iface.Functions)
-			{
-				if (function.VtblOffset >= iface.VtblOffset && function.Retval.TypeEnum == TypeEnum::Hresult)
-				{
-					out << "	";
-					if (definition != FunctionDefinition::Definition)
-						out << "	";
-					if (definition == FunctionDefinition::Abstract)
-						out << "virtual ";
-					if (!function.ArgList.empty() && function.ArgList.back().Retval)
-						out << Format(function.ArgList.back().Type, TypeFormat::AsWrapper);
-					else
-						out << "void";
-					out << " ";
-					if (definition == FunctionDefinition::Definition)
-						out << className << "::";
-					if (iface.IsConflicting)
-						out << iface.Name << "_";
-					out << function.Name << "(";
-					auto first = true;
-					for (auto& argument : function.ArgList)
-					{
-						if (argument.Retval)
-							break;
-						if (!first)
-							out << ", ";
-						first = false;
-						out << Format(argument, ParameterFormat::AsWrapper);
-					}
-					out << ")";
-					switch (definition)
-					{
-					case FunctionDefinition::Abstract:
-						out << " = 0;" << std::endl;
-						break;
-					case FunctionDefinition::Prototype:
-						out << " final;" << std::endl;
-						break;
-					case FunctionDefinition::Definition:
-						out << std::endl
-							<< "	{" << std::endl
-							<< "		throw Com::NotImplemented(__FUNCTION__);" << std::endl
-							<< "	}" << std::endl
-							<< std::endl;
-						break;
-					}
-				}
-			}
 		}
 
 		void CodeGenerator::WriteWrappers(const std::vector<Interface>& interfaces)
