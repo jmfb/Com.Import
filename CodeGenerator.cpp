@@ -1,336 +1,56 @@
 #include "CodeGenerator.h"
-#include <iomanip>
-#include <type_traits>
-#include <locale>
-#include <codecvt>
+#include "CoclassFormatter.h"
+#include "LibraryFormatter.h"
+#include "GuidFormatter.h"
 #include <fstream>
-#include <algorithm>
 #include <chrono>
 #include <ctime>
-#include <map>
-#include <set>
-#include "GuidFormatter.h"
-#include "HexFormatter.h"
-#include "TypeFormatter.h"
-#include "EnumFormatter.h"
-#include "AliasFormatter.h"
-#include "InterfaceFormatter.h"
-#include "RecordFormatter.h"
-#include "IdentifierFormatter.h"
-#include "FunctionFormatter.h"
-#include "ParameterFormatter.h"
 
 namespace Com
 {
 	namespace Import
 	{
-		CodeGenerator::CodeGenerator(std::ostream& out, bool implement)
-			: out(out), implement(implement)
-		{
-		}
-
 		void CodeGenerator::Generate(const LoadLibraryResult& result, bool implement)
 		{
-			Generate(result.PrimaryLibrary, implement);
+			GenerateImport(result.PrimaryLibrary, implement);
 			for (auto& reference : result.ReferencedLibraries)
-				Generate(reference, false);
+				GenerateImport(reference, false);
 			if (!implement)
 				return;
 			GenerateSolution(result);
 			GenerateProject(result);
 			GenerateProjectFilters(result);
+			GeneratePackages();
+			GenerateResourceHeader(result.PrimaryLibrary);
+			GenerateResources(result.PrimaryLibrary);
+			GenerateDef(result.PrimaryLibrary);
+			GenerateManifest(result.PrimaryLibrary);
+			GenerateMain(result.PrimaryLibrary);
+			for (auto& coclass : result.PrimaryLibrary.Coclasses)
+			{
+				GenerateCoclassHeader(result.PrimaryLibrary, coclass);
+				GenerateCoclassSource(result.PrimaryLibrary, coclass);
+			}
 		}
 
-		void CodeGenerator::Generate(const Library& library, bool implement)
+		void CodeGenerator::GenerateImport(const Library& library, bool implement)
 		{
 			auto fileName = library.OutputName + ".h";
-			std::cout << "Generating header: " << fileName << std::endl;
-			CodeGenerator{ std::ofstream{ fileName.c_str() }, implement }.Write(library);
-			if (!implement)
-				return;
-			GenerateMain(library);
-			GenerateCoclasses(library);
-			GenerateDef(library);
-			GenerateResources(library);
-			GeneratePackages();
-			GenerateManifest(library);
-		}
-
-		void CodeGenerator::GenerateMain(const Library& library)
-		{
-			std::cout << "Generating source: main.cpp" << std::endl;
-			std::ofstream out{ "main.cpp" };
-			out << "#include \"Com/Com.h\"" << std::endl;
-			for (auto& coclass : library.Coclasses)
-				out << "#include \"" << coclass.Name << ".h\"" << std::endl;
-			out << std::endl
-				<< "extern \"C\" BOOL __stdcall DllMain(HINSTANCE instance, DWORD reason, void* reserved)" << std::endl
-				<< "{" << std::endl
-				<< "	if (reason == DLL_PROCESS_ATTACH)" << std::endl
-				<< "		Com::Module::GetInstance().Initialize(instance);" << std::endl
-				<< "	return TRUE;" << std::endl
-				<< "}" << std::endl
-				<< std::endl
-				<< "HRESULT __stdcall DllCanUnloadNow()" << std::endl
-				<< "{" << std::endl
-				<< "	return Com::Module::GetInstance().CanUnload() ? S_OK : S_FALSE;" << std::endl
-				<< "}" << std::endl
-				<< std::endl
-				<< "HRESULT __stdcall DllGetClassObject(REFCLSID rclsid, REFIID riid, void** ppvObject)" << std::endl
-				<< "{" << std::endl
-				<< "	return Com::ObjectList<" << std::endl;
-			auto first = true;
-			for (auto& coclass : library.Coclasses)
-			{
-				if (!first)
-					out << "," << std::endl;
-				first = false;
-				out << "		" << library.Name << "::" << coclass.Name;
-			}
-			out << std::endl
-				<< "	>::Create(rclsid, riid, ppvObject);" << std::endl
-				<< "}" << std::endl;
-		}
-
-		void CodeGenerator::GenerateCoclasses(const Library& library)
-		{
-			for (auto& coclass : library.Coclasses)
-			{
-				GenerateCoclassHeader(library, coclass);
-				GenerateCoclassSource(library, coclass);
-			}
-		}
-
-		void CodeGenerator::GenerateCoclassHeader(const Library& library, const Coclass& coclass)
-		{
-			auto fileName = coclass.Name + ".h";
-			std::cout << "Generating header: " << fileName << std::endl;
-			std::ofstream out{ fileName.c_str() };
-			out << "#pragma once" << std::endl
-				<< "#include \"" << library.OutputName << ".h\"" << std::endl
-				<< std::endl
-				<< "namespace " << library.Name << std::endl
-				<< "{" << std::endl
-				<< "	class " << coclass.Name << " : public " << coclass.Name << "Coclass<" << coclass.Name << ">" << std::endl
-				<< "	{" << std::endl
-				<< "	public:" << std::endl;
-			for (auto& iface : coclass.Interfaces)
-				out << Format(iface, InterfaceFormat::AsCoclassFunctionPrototypes);
-			out << "	};" << std::endl
-				<< "}" << std::endl;
-		}
-
-		void CodeGenerator::GenerateCoclassSource(const Library& library, const Coclass& coclass)
-		{
-			auto fileName = coclass.Name + ".cpp";
-			std::cout << "Generating source: " << fileName << std::endl;
-			std::ofstream out{ fileName.c_str() };
-			out << "#include \"" << coclass.Name << ".h\"" << std::endl
-				<< std::endl
-				<< "namespace " << library.Name << std::endl
-				<< "{" << std::endl;
-			for (auto& iface : coclass.Interfaces)
-				out << Format(iface, InterfaceFormat::AsCoclassFunctionImplementations, "", coclass.Name);
-			out << "}" << std::endl;
-		}
-
-		void CodeGenerator::GenerateDef(const Library& library)
-		{
-			auto fileName = library.Name + ".def";
-			std::cout << "Generate module definition: " << fileName << std::endl;
-			std::ofstream out{ fileName.c_str() };
-			out << "LIBRARY \"" << library.OutputName << "\"" << std::endl
-				<< "EXPORTS" << std::endl
-				<< "	DllCanUnloadNow private" << std::endl
-				<< "	DllGetClassObject private" << std::endl;
-		}
-
-		void CodeGenerator::GenerateResources(const Library& library)
-		{
-			auto rcFileName = library.Name + ".rc";
-			auto headerFileName = "resource.h";
-			std::cout << "Generate resources: " << rcFileName << "/" << headerFileName << std::endl;
-			std::ofstream out{ rcFileName.c_str() };
-
-			auto time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-			auto year = std::localtime(&time)->tm_year + 1900;
-
-			out << "// Microsoft Visual C++ generated resource script." << std::endl
-				<< "//" << std::endl
-				<< "#include \"resource.h\"" << std::endl
-				<< std::endl
-				<< "#define APSTUDIO_READONLY_SYMBOLS" << std::endl
-				<< "/////////////////////////////////////////////////////////////////////////////" << std::endl
-				<< "//" << std::endl
-				<< "// Generated from the TEXTINCLUDE 2 resource." << std::endl
-				<< "//" << std::endl
-				<< "#include \"winres.h\"" << std::endl
-				<< std::endl
-				<< "/////////////////////////////////////////////////////////////////////////////" << std::endl
-				<< "#undef APSTUDIO_READONLY_SYMBOLS" << std::endl
-				<< std::endl
-				<< "/////////////////////////////////////////////////////////////////////////////" << std::endl
-				<< "// English (United States) resources" << std::endl
-				<< std::endl
-				<< "#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)" << std::endl
-				<< "LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US" << std::endl
-				<< std::endl
-				<< "#ifdef APSTUDIO_INVOKED" << std::endl
-				<< "/////////////////////////////////////////////////////////////////////////////" << std::endl
-				<< "//" << std::endl
-				<< "// TEXTINCLUDE" << std::endl
-				<< "//" << std::endl
-				<< std::endl
-				<< "1 TEXTINCLUDE " << std::endl
-				<< "BEGIN" << std::endl
-				<< "    \"resource.h\\0\"" << std::endl
-				<< "END" << std::endl
-				<< std::endl
-				<< "2 TEXTINCLUDE " << std::endl
-				<< "BEGIN" << std::endl
-				<< "    \"#include \"\"winres.h\"\"\\r\\n\"" << std::endl
-				<< "    \"\\0\"" << std::endl
-				<< "END" << std::endl
-				<< std::endl
-				<< "3 TEXTINCLUDE " << std::endl
-				<< "BEGIN" << std::endl
-				<< "    \"1 TYPELIB \"\"" << library.OutputName << ".tlb\"\"\\r\\n\"" << std::endl
-				<< "    \"\\0\"" << std::endl
-				<< "END" << std::endl
-				<< std::endl
-				<< "#endif    // APSTUDIO_INVOKED" << std::endl
-				<< std::endl
-				<< std::endl
-				<< "/////////////////////////////////////////////////////////////////////////////" << std::endl
-				<< "//" << std::endl
-				<< "// Version" << std::endl
-				<< "//" << std::endl
-				<< std::endl
-				<< "VS_VERSION_INFO VERSIONINFO" << std::endl
-				<< " FILEVERSION 1,0,0,1" << std::endl
-				<< " PRODUCTVERSION 1,0,0,1" << std::endl
-				<< " FILEFLAGSMASK 0x3fL" << std::endl
-				<< "#ifdef _DEBUG" << std::endl
-				<< " FILEFLAGS 0x1L" << std::endl
-				<< "#else" << std::endl
-				<< " FILEFLAGS 0x0L" << std::endl
-				<< "#endif" << std::endl
-				<< " FILEOS 0x40004L" << std::endl
-				<< " FILETYPE 0x2L" << std::endl
-				<< " FILESUBTYPE 0x0L" << std::endl
-				<< "BEGIN" << std::endl
-				<< "    BLOCK \"StringFileInfo\"" << std::endl
-				<< "    BEGIN" << std::endl
-				<< "        BLOCK \"040904b0\"" << std::endl
-				<< "        BEGIN" << std::endl
-				<< "            VALUE \"CompanyName\", \"TODO\"" << std::endl
-				<< "            VALUE \"FileDescription\", \"" << library.Name << "\"" << std::endl
-				<< "            VALUE \"FileVersion\", \"1.0.0.0\"" << std::endl
-				<< "            VALUE \"InternalName\", \"" << library.OutputName << ".dll\"" << std::endl
-				<< "            VALUE \"LegalCopyright\", \"Copyright(C) " << year << "\"" << std::endl
-				<< "            VALUE \"OriginalFilename\", \"" << library.OutputName << ".dll\"" << std::endl
-				<< "            VALUE \"ProductName\", \"" << library.Name << "\"" << std::endl
-				<< "            VALUE \"ProductVersion\", \"1.0.0.0\"" << std::endl
-				<< "        END" << std::endl
-				<< "    END" << std::endl
-				<< "    BLOCK \"VarFileInfo\"" << std::endl
-				<< "    BEGIN" << std::endl
-				<< "        VALUE \"Translation\", 0x409, 1200" << std::endl
-				<< "    END" << std::endl
-				<< "END" << std::endl
-				<< std::endl
-				<< "#endif    // English (United States) resources" << std::endl
-				<< "/////////////////////////////////////////////////////////////////////////////" << std::endl
-				<< std::endl
-				<< std::endl
-				<< std::endl
-				<< "#ifndef APSTUDIO_INVOKED" << std::endl
-				<< "/////////////////////////////////////////////////////////////////////////////" << std::endl
-				<< "//" << std::endl
-				<< "// Generated from the TEXTINCLUDE 3 resource." << std::endl
-				<< "//" << std::endl
-				<< "1 TYPELIB \"" << library.OutputName << ".tlb\"" << std::endl
-				<< std::endl
-				<< "/////////////////////////////////////////////////////////////////////////////" << std::endl
-				<< "#endif    // not APSTUDIO_INVOKED" << std::endl
-				<< std::endl
-				<< std::endl;
-
-			std::ofstream{ headerFileName }
-				<< "//{{NO_DEPENDENCIES}}" << std::endl
-				<< "// Microsoft Visual C++ generated include file." << std::endl
-				<< "// Used by " << library.Name << ".rc" << std::endl
-				<< std::endl
-				<< "// Next default values for new objects" << std::endl
-				<< "// " << std::endl
-				<< "#ifdef APSTUDIO_INVOKED" << std::endl
-				<< "#ifndef APSTUDIO_READONLY_SYMBOLS" << std::endl
-				<< "#define _APS_NEXT_RESOURCE_VALUE        101" << std::endl
-				<< "#define _APS_NEXT_COMMAND_VALUE         40001" << std::endl
-				<< "#define _APS_NEXT_CONTROL_VALUE         1001" << std::endl
-				<< "#define _APS_NEXT_SYMED_VALUE           101" << std::endl
-				<< "#endif" << std::endl
-				<< "#endif" << std::endl;
-		}
-
-		void CodeGenerator::GeneratePackages()
-		{
-			auto fileName = "packages.config";
-			std::cout << "Generating packages: " << fileName << std::endl;
-			std::ofstream{ fileName }
-				<< "<?xml version=\"1.0\" encoding=\"utf-8\"?>" << std::endl
-				<< "<packages>" << std::endl
-				<< "	<package id=\"Jmfb.Com\" version=\"1.0.6\" targetFramework=\"native\" />" << std::endl
-				<< "</packages>" << std::endl;
-		}
-
-		void CodeGenerator::GenerateManifest(const Library& library)
-		{
-			auto fileName = library.OutputName + ".manifest";
-			std::cout << "Generating manifest: " << fileName << std::endl;
-			std::ofstream out{ fileName.c_str() };
-			out << "<?xml version=\"1.0\" encoding=\"utf-8\" standalone=\"yes\"?>" << std::endl
-				<< "<assembly" << std::endl
-				<< "	xmlns=\"urn:schemas-microsoft-com:asm.v1\"" << std::endl
-				<< "	manifestVersion=\"1.0\">" << std::endl
-				<< "	<assemblyIdentity" << std::endl
-				<< "		type=\"win32\"" << std::endl
-				<< "		name=\"" << library.OutputName << "\"" << std::endl
-				<< "		version=\"1.0.0.0\" />" << std::endl
-				<< "	<file name=\"" << library.OutputName << ".dll\">" << std::endl;
-			for (auto& coclass : library.Coclasses)
-			{
-				out << "		<comClass" << std::endl
-					<< "			clsid=\"{" << Format(coclass.Clsid, GuidFormat::AsString) << "}\"" << std::endl
-					<< "			threadingModel=\"Free\" />" << std::endl;
-			}
-			out << "		<typelib" << std::endl
-				<< "			tlbid=\"{" << Format(library.Libid, GuidFormat::AsString) << "}\"" << std::endl
-				<< "			version=\"" << library.MajorVersion << "." << library.MinorVersion << "\"" << std::endl
-				<< "			helpdir=\"\" />" << std::endl
-				<< "	</file>" << std::endl;
-			for (auto& iface : library.Interfaces)
-			{
-				out << "	<comInterfaceExternalProxyStub" << std::endl
-					<< "		name=\"" << iface.Name << "\"" << std::endl
-					<< "		iid=\"{" << Format(iface.Iid, GuidFormat::AsString) << "}\"" << std::endl
-					<< "		proxyStubClsid32=\"{00020424-0000-0000-C000-000000000046}\"" << std::endl
-					<< "		baseInterface=\"{" << Format(iface.BaseIid, GuidFormat::AsString) << "}\"" << std::endl
-					<< "		tlbid=\"{" << Format(library.Libid, GuidFormat::AsString) << "}\" />" << std::endl;
-			}
-			out << "</assembly>" << std::endl;
+			std::cout << "Generating import: " << fileName << std::endl;
+			std::ofstream{ fileName.c_str() } << Format(library, LibraryFormat::AsImport, implement);
 		}
 
 		void CodeGenerator::GenerateSolution(const LoadLibraryResult& result)
 		{
 			auto fileName = result.PrimaryLibrary.Name + ".sln";
+			std::cout << "Generating solution: " << fileName << std::endl;
 			std::ofstream{ fileName.c_str() }
 				<< "Microsoft Visual Studio Solution File, Format Version 12.00" << std::endl
 				<< "# Visual Studio 14" << std::endl
 				<< "VisualStudioVersion = 14.0.24720.0" << std::endl
 				<< "MinimumVisualStudioVersion = 10.0.40219.1" << std::endl
 				<< "Project(\"{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}\") = \"" << result.PrimaryLibrary.Name
-					<< "\", \"" << result.PrimaryLibrary.Name << ".vcxproj\", \"{" << Format(result.PrimaryLibrary.Libid, GuidFormat::AsString) << "}\"" << std::endl
+				<< "\", \"" << result.PrimaryLibrary.Name << ".vcxproj\", \"{" << Format(result.PrimaryLibrary.Libid, GuidFormat::AsString) << "}\"" << std::endl
 				<< "EndProject" << std::endl
 				<< "Global" << std::endl
 				<< "	GlobalSection(SolutionConfigurationPlatforms) = preSolution" << std::endl
@@ -352,7 +72,7 @@ namespace Com
 		void CodeGenerator::GenerateProject(const LoadLibraryResult& result)
 		{
 			auto fileName = result.PrimaryLibrary.Name + ".vcxproj";
-			std::cout << "Generating project file: " << fileName << std::endl;
+			std::cout << "Generating project: " << fileName << std::endl;
 			std::ofstream out{ fileName.c_str() };
 			out << "<?xml version=\"1.0\" encoding=\"utf-8\"?>" << std::endl
 				<< "<Project DefaultTargets=\"Build\" ToolsVersion=\"14.0\" xmlns=\"http://schemas.microsoft.com/developer/msbuild/2003\">" << std::endl
@@ -464,7 +184,7 @@ namespace Com
 		void CodeGenerator::GenerateProjectFilters(const LoadLibraryResult& result)
 		{
 			auto fileName = result.PrimaryLibrary.Name + ".vcxproj.filters";
-			std::cout << "Generating project filters: " << fileName << std::endl;
+			std::cout << "Generating filters: " << fileName << std::endl;
 			std::ofstream out{ fileName.c_str() };
 			out << "<?xml version=\"1.0\" encoding=\"utf-8\"?>" << std::endl
 				<< "<Project ToolsVersion=\"4.0\" xmlns=\"http://schemas.microsoft.com/developer/msbuild/2003\">" << std::endl
@@ -477,12 +197,12 @@ namespace Com
 				<< "    </ClInclude>" << std::endl;
 			for (auto& library : result.ReferencedLibraries)
 				out << "    <ClInclude Include=\"" << library.OutputName << ".h\">" << std::endl
-					<< "      <Filter>Imports</Filter>" << std::endl
-					<< "    </ClInclude>" << std::endl;
+				<< "      <Filter>Imports</Filter>" << std::endl
+				<< "    </ClInclude>" << std::endl;
 			for (auto& coclass : result.PrimaryLibrary.Coclasses)
 				out << "    <ClInclude Include=\"" << coclass.Name << ".h\">" << std::endl
-					<< "      <Filter>Classes</Filter>" << std::endl
-					<< "    </ClInclude>" << std::endl;
+				<< "      <Filter>Classes</Filter>" << std::endl
+				<< "    </ClInclude>" << std::endl;
 			out << "  </ItemGroup>" << std::endl
 				<< "  <ItemGroup>" << std::endl
 				<< "    <None Include=\"packages.config\" />" << std::endl
@@ -497,8 +217,8 @@ namespace Com
 				<< "    <ClCompile Include=\"main.cpp\" />" << std::endl;
 			for (auto& coclass : result.PrimaryLibrary.Coclasses)
 				out << "    <ClCompile Include=\"" << coclass.Name << ".cpp\">" << std::endl
-					<< "      <Filter>Classes</Filter>" << std::endl
-					<< "    </ClCompile>" << std::endl;
+				<< "      <Filter>Classes</Filter>" << std::endl
+				<< "    </ClCompile>" << std::endl;
 			out << "  </ItemGroup>" << std::endl
 				<< "  <ItemGroup>" << std::endl
 				<< "    <Filter Include=\"Classes\">" << std::endl
@@ -524,111 +244,245 @@ namespace Com
 				<< "</Project>" << std::endl;
 		}
 
-		void CodeGenerator::Write(const Library& library)
+		void CodeGenerator::GeneratePackages()
 		{
-			out << "#pragma once" << std::endl
-				<< "#include \"Com/Com.h\"" << std::endl;
-			for (auto& reference : library.References)
-				out << "#include \"" << reference << "\"" << std::endl;
-			out << "#pragma pack(push, 8)" << std::endl
-				<< "namespace " << library.Name << std::endl
-				<< "{" << std::endl;
-			Write(library.Enums);
-			ForwardDeclare(library.Interfaces);
-			Write(library.Aliases);
-			Write(library.Records);
-			Write(library.Interfaces);
-			Write(library.Identifiers);
-			WriteWrappers(library.Interfaces);
-			if (implement)
-				Write(library.Coclasses);
-			out << "}" << std::endl;
-			WriteComTypeInfo(library.Name, library.Interfaces);
-			out << "#pragma pack(pop)" << std::endl;
+			auto fileName = "packages.config";
+			std::cout << "Generating packages: " << fileName << std::endl;
+			std::ofstream{ fileName }
+				<< "<?xml version=\"1.0\" encoding=\"utf-8\"?>" << std::endl
+				<< "<packages>" << std::endl
+				<< "	<package id=\"Jmfb.Com\" version=\"1.0.6\" targetFramework=\"native\" />" << std::endl
+				<< "</packages>" << std::endl;
 		}
 
-		void CodeGenerator::Write(const std::vector<Enum>& enums)
+		void CodeGenerator::GenerateResourceHeader(const Library& library)
 		{
-			for (auto& enumeration : enums)
-				out << Format(enumeration);
+			auto fileName = "resource.h";
+			std::cout << "Generate resource header: " << fileName << std::endl;
+			std::ofstream{ fileName }
+				<< "//{{NO_DEPENDENCIES}}" << std::endl
+				<< "// Microsoft Visual C++ generated include file." << std::endl
+				<< "// Used by " << library.Name << ".rc" << std::endl
+				<< std::endl
+				<< "// Next default values for new objects" << std::endl
+				<< "// " << std::endl
+				<< "#ifdef APSTUDIO_INVOKED" << std::endl
+				<< "#ifndef APSTUDIO_READONLY_SYMBOLS" << std::endl
+				<< "#define _APS_NEXT_RESOURCE_VALUE        101" << std::endl
+				<< "#define _APS_NEXT_COMMAND_VALUE         40001" << std::endl
+				<< "#define _APS_NEXT_CONTROL_VALUE         1001" << std::endl
+				<< "#define _APS_NEXT_SYMED_VALUE           101" << std::endl
+				<< "#endif" << std::endl
+				<< "#endif" << std::endl;
 		}
 
-		void CodeGenerator::ForwardDeclare(const std::vector<Interface>& interfaces)
+		void CodeGenerator::GenerateResources(const Library& library)
 		{
-			for (auto& iface : interfaces)
-				out << Format(iface, InterfaceFormat::AsForwardDeclaration)
-					<< Format(iface, InterfaceFormat::AsWrapperForwardDeclaration);
+			auto fileName = library.Name + ".rc";
+			std::cout << "Generate resources: " << fileName << std::endl;
+
+			auto time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+			auto year = std::localtime(&time)->tm_year + 1900;
+
+			std::ofstream{ fileName.c_str() }
+				<< "// Microsoft Visual C++ generated resource script." << std::endl
+				<< "//" << std::endl
+				<< "#include \"resource.h\"" << std::endl
+				<< std::endl
+				<< "#define APSTUDIO_READONLY_SYMBOLS" << std::endl
+				<< "/////////////////////////////////////////////////////////////////////////////" << std::endl
+				<< "//" << std::endl
+				<< "// Generated from the TEXTINCLUDE 2 resource." << std::endl
+				<< "//" << std::endl
+				<< "#include \"winres.h\"" << std::endl
+				<< std::endl
+				<< "/////////////////////////////////////////////////////////////////////////////" << std::endl
+				<< "#undef APSTUDIO_READONLY_SYMBOLS" << std::endl
+				<< std::endl
+				<< "/////////////////////////////////////////////////////////////////////////////" << std::endl
+				<< "// English (United States) resources" << std::endl
+				<< std::endl
+				<< "#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)" << std::endl
+				<< "LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US" << std::endl
+				<< std::endl
+				<< "#ifdef APSTUDIO_INVOKED" << std::endl
+				<< "/////////////////////////////////////////////////////////////////////////////" << std::endl
+				<< "//" << std::endl
+				<< "// TEXTINCLUDE" << std::endl
+				<< "//" << std::endl
+				<< std::endl
+				<< "1 TEXTINCLUDE " << std::endl
+				<< "BEGIN" << std::endl
+				<< "    \"resource.h\\0\"" << std::endl
+				<< "END" << std::endl
+				<< std::endl
+				<< "2 TEXTINCLUDE " << std::endl
+				<< "BEGIN" << std::endl
+				<< "    \"#include \"\"winres.h\"\"\\r\\n\"" << std::endl
+				<< "    \"\\0\"" << std::endl
+				<< "END" << std::endl
+				<< std::endl
+				<< "3 TEXTINCLUDE " << std::endl
+				<< "BEGIN" << std::endl
+				<< "    \"1 TYPELIB \"\"" << library.OutputName << ".tlb\"\"\\r\\n\"" << std::endl
+				<< "    \"\\0\"" << std::endl
+				<< "END" << std::endl
+				<< std::endl
+				<< "#endif    // APSTUDIO_INVOKED" << std::endl
+				<< std::endl
+				<< std::endl
+				<< "/////////////////////////////////////////////////////////////////////////////" << std::endl
+				<< "//" << std::endl
+				<< "// Version" << std::endl
+				<< "//" << std::endl
+				<< std::endl
+				<< "VS_VERSION_INFO VERSIONINFO" << std::endl
+				<< " FILEVERSION 1,0,0,1" << std::endl
+				<< " PRODUCTVERSION 1,0,0,1" << std::endl
+				<< " FILEFLAGSMASK 0x3fL" << std::endl
+				<< "#ifdef _DEBUG" << std::endl
+				<< " FILEFLAGS 0x1L" << std::endl
+				<< "#else" << std::endl
+				<< " FILEFLAGS 0x0L" << std::endl
+				<< "#endif" << std::endl
+				<< " FILEOS 0x40004L" << std::endl
+				<< " FILETYPE 0x2L" << std::endl
+				<< " FILESUBTYPE 0x0L" << std::endl
+				<< "BEGIN" << std::endl
+				<< "    BLOCK \"StringFileInfo\"" << std::endl
+				<< "    BEGIN" << std::endl
+				<< "        BLOCK \"040904b0\"" << std::endl
+				<< "        BEGIN" << std::endl
+				<< "            VALUE \"CompanyName\", \"TODO\"" << std::endl
+				<< "            VALUE \"FileDescription\", \"" << library.Name << "\"" << std::endl
+				<< "            VALUE \"FileVersion\", \"1.0.0.0\"" << std::endl
+				<< "            VALUE \"InternalName\", \"" << library.OutputName << ".dll\"" << std::endl
+				<< "            VALUE \"LegalCopyright\", \"Copyright(C) " << year << "\"" << std::endl
+				<< "            VALUE \"OriginalFilename\", \"" << library.OutputName << ".dll\"" << std::endl
+				<< "            VALUE \"ProductName\", \"" << library.Name << "\"" << std::endl
+				<< "            VALUE \"ProductVersion\", \"1.0.0.0\"" << std::endl
+				<< "        END" << std::endl
+				<< "    END" << std::endl
+				<< "    BLOCK \"VarFileInfo\"" << std::endl
+				<< "    BEGIN" << std::endl
+				<< "        VALUE \"Translation\", 0x409, 1200" << std::endl
+				<< "    END" << std::endl
+				<< "END" << std::endl
+				<< std::endl
+				<< "#endif    // English (United States) resources" << std::endl
+				<< "/////////////////////////////////////////////////////////////////////////////" << std::endl
+				<< std::endl
+				<< std::endl
+				<< std::endl
+				<< "#ifndef APSTUDIO_INVOKED" << std::endl
+				<< "/////////////////////////////////////////////////////////////////////////////" << std::endl
+				<< "//" << std::endl
+				<< "// Generated from the TEXTINCLUDE 3 resource." << std::endl
+				<< "//" << std::endl
+				<< "1 TYPELIB \"" << library.OutputName << ".tlb\"" << std::endl
+				<< std::endl
+				<< "/////////////////////////////////////////////////////////////////////////////" << std::endl
+				<< "#endif    // not APSTUDIO_INVOKED" << std::endl
+				<< std::endl
+				<< std::endl;
 		}
 
-		void CodeGenerator::Write(const std::vector<Alias>& aliases)
+		void CodeGenerator::GenerateDef(const Library& library)
 		{
-			for (auto& alias : aliases)
-				out << Format(alias);
+			auto fileName = library.Name + ".def";
+			std::cout << "Generate module definition: " << fileName << std::endl;
+			std::ofstream{ fileName.c_str() }
+				<< "LIBRARY \"" << library.OutputName << "\"" << std::endl
+				<< "EXPORTS" << std::endl
+				<< "	DllCanUnloadNow private" << std::endl
+				<< "	DllGetClassObject private" << std::endl;
 		}
 
-		void CodeGenerator::Write(const std::vector<Record>& records)
+		void CodeGenerator::GenerateManifest(const Library& library)
 		{
-			for (auto& record : records)
-				out << Format(record);
-		}
-
-		void CodeGenerator::Write(const std::vector<Interface>& interfaces)
-		{
-			for (auto& iface : interfaces)
-				out << Format(iface, InterfaceFormat::AsNative, implement ? "raw_" : "");
-		}
-
-		void CodeGenerator::Write(const std::vector<Identifier>& identifiers)
-		{
-			for (auto& identifier : identifiers)
-				out << Format(identifier);
-		}
-
-		void CodeGenerator::Write(const std::vector<Coclass>& coclasses)
-		{
-			for (auto& coclass : coclasses)
-				Write(coclass);
-		}
-
-		void CodeGenerator::Write(const Coclass& coclass)
-		{
-			for (auto& iface : coclass.Interfaces)
-				if (iface.IsConflicting)
-					out << Format(iface, InterfaceFormat::AsResolveNameConflict, coclass.Name + "_");
-			out << "	template <typename Type>" << std::endl
-				<< "	class " << coclass.Name << "Coclass : public Com::Object<Type, &CLSID_" << coclass.Name;
-			for (auto& iface : coclass.Interfaces)
+			auto fileName = library.OutputName + ".manifest";
+			std::cout << "Generating manifest: " << fileName << std::endl;
+			std::ofstream out{ fileName.c_str() };
+			out << "<?xml version=\"1.0\" encoding=\"utf-8\" standalone=\"yes\"?>" << std::endl
+				<< "<assembly" << std::endl
+				<< "	xmlns=\"urn:schemas-microsoft-com:asm.v1\"" << std::endl
+				<< "	manifestVersion=\"1.0\">" << std::endl
+				<< "	<assemblyIdentity" << std::endl
+				<< "		type=\"win32\"" << std::endl
+				<< "		name=\"" << library.OutputName << "\"" << std::endl
+				<< "		version=\"1.0.0.0\" />" << std::endl
+				<< "	<file name=\"" << library.OutputName << ".dll\">" << std::endl;
+			for (auto& coclass : library.Coclasses)
 			{
-				out << ", ";
-				if (iface.IsConflicting)
-					out << coclass.Name << "_";
-				out << iface.Name;
+				out << "		<comClass" << std::endl
+					<< "			clsid=\"{" << Format(coclass.Clsid, GuidFormat::AsString) << "}\"" << std::endl
+					<< "			threadingModel=\"Free\" />" << std::endl;
 			}
-			out << ">" << std::endl
-				<< "	{" << std::endl
-				<< "	public:" << std::endl;
-			for (auto& iface : coclass.Interfaces)
-				out << Format(iface, InterfaceFormat::AsCoclassAbstractFunctions);
-			for (auto& iface : coclass.Interfaces)
-				out << Format(iface, InterfaceFormat::AsRawFunctions);
-			out << "	};" << std::endl;
+			out << "		<typelib" << std::endl
+				<< "			tlbid=\"{" << Format(library.Libid, GuidFormat::AsString) << "}\"" << std::endl
+				<< "			version=\"" << library.MajorVersion << "." << library.MinorVersion << "\"" << std::endl
+				<< "			helpdir=\"\" />" << std::endl
+				<< "	</file>" << std::endl;
+			for (auto& iface : library.Interfaces)
+			{
+				out << "	<comInterfaceExternalProxyStub" << std::endl
+					<< "		name=\"" << iface.Name << "\"" << std::endl
+					<< "		iid=\"{" << Format(iface.Iid, GuidFormat::AsString) << "}\"" << std::endl
+					<< "		proxyStubClsid32=\"{00020424-0000-0000-C000-000000000046}\"" << std::endl
+					<< "		baseInterface=\"{" << Format(iface.BaseIid, GuidFormat::AsString) << "}\"" << std::endl
+					<< "		tlbid=\"{" << Format(library.Libid, GuidFormat::AsString) << "}\" />" << std::endl;
+			}
+			out << "</assembly>" << std::endl;
 		}
 
-		void CodeGenerator::WriteWrappers(const std::vector<Interface>& interfaces)
+		void CodeGenerator::GenerateMain(const Library& library)
 		{
-			for (auto& iface : interfaces)
-				out << Format(iface, InterfaceFormat::AsWrapper);
-			for (auto& iface : interfaces)
-				out << Format(iface, InterfaceFormat::AsWrapperFunctions, implement ? "raw_" : "");
+			std::cout << "Generating source: main.cpp" << std::endl;
+			std::ofstream out{ "main.cpp" };
+			out << "#include \"Com/Com.h\"" << std::endl;
+			for (auto& coclass : library.Coclasses)
+				out << "#include \"" << coclass.Name << ".h\"" << std::endl;
+			out << std::endl
+				<< "extern \"C\" BOOL __stdcall DllMain(HINSTANCE instance, DWORD reason, void* reserved)" << std::endl
+				<< "{" << std::endl
+				<< "	if (reason == DLL_PROCESS_ATTACH)" << std::endl
+				<< "		Com::Module::GetInstance().Initialize(instance);" << std::endl
+				<< "	return TRUE;" << std::endl
+				<< "}" << std::endl
+				<< std::endl
+				<< "HRESULT __stdcall DllCanUnloadNow()" << std::endl
+				<< "{" << std::endl
+				<< "	return Com::Module::GetInstance().CanUnload() ? S_OK : S_FALSE;" << std::endl
+				<< "}" << std::endl
+				<< std::endl
+				<< "HRESULT __stdcall DllGetClassObject(REFCLSID rclsid, REFIID riid, void** ppvObject)" << std::endl
+				<< "{" << std::endl
+				<< "	return Com::ObjectList<" << std::endl;
+			auto first = true;
+			for (auto& coclass : library.Coclasses)
+			{
+				if (!first)
+					out << "," << std::endl;
+				first = false;
+				out << "		" << library.Name << "::" << coclass.Name;
+			}
+			out << std::endl
+				<< "	>::Create(rclsid, riid, ppvObject);" << std::endl
+				<< "}" << std::endl;
 		}
 
-		void CodeGenerator::WriteComTypeInfo(const std::string& libraryName, const std::vector<Interface>& interfaces)
+		void CodeGenerator::GenerateCoclassHeader(const Library& library, const Coclass& coclass)
 		{
-			out << "namespace Com" << std::endl
-				<< "{" << std::endl;
-			for (auto& iface : interfaces)
-				out << Format(iface, InterfaceFormat::AsTypeInfoSpecialization, "", libraryName);
-			out << "}" << std::endl;
+			auto fileName = coclass.Name + ".h";
+			std::cout << "Generating header: " << fileName << std::endl;
+			std::ofstream{ fileName.c_str() } << Format(coclass, CoclassFormat::AsObjectHeader, library.Name, library.OutputName);
+		}
+
+		void CodeGenerator::GenerateCoclassSource(const Library& library, const Coclass& coclass)
+		{
+			auto fileName = coclass.Name + ".cpp";
+			std::cout << "Generating source: " << fileName << std::endl;
+			std::ofstream{ fileName.c_str() } << Format(coclass, CoclassFormat::AsObjectSource, library.Name);
 		}
 	}
 };

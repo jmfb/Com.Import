@@ -144,6 +144,7 @@
   <ItemGroup>
     <ClCompile Include="AliasFormatter.cpp" />
     <ClCompile Include="ArgumentNames.cpp" />
+    <ClCompile Include="CoclassFormatter.cpp" />
     <ClCompile Include="CodeGenerator.cpp" />
     <ClCompile Include="ElementDescription.cpp" />
     <ClCompile Include="EnumFormatter.cpp" />
@@ -152,6 +153,7 @@
     <ClCompile Include="GuidFormatter.cpp" />
     <ClCompile Include="IdentifierFormatter.cpp" />
     <ClCompile Include="InterfaceFormatter.cpp" />
+    <ClCompile Include="LibraryFormatter.cpp" />
     <ClCompile Include="LibraryLoader.cpp" />
     <ClCompile Include="Loader.cpp" />
     <ClCompile Include="main.cpp" />
@@ -167,6 +169,7 @@
   <ItemGroup>
     <ClInclude Include="AliasFormatter.h" />
     <ClInclude Include="ArgumentNames.h" />
+    <ClInclude Include="CoclassFormatter.h" />
     <ClInclude Include="CodeGenerator.h" />
     <ClInclude Include="Com\ClassFactory.h" />
     <ClInclude Include="Com\Com.h" />
@@ -188,6 +191,7 @@
     <ClInclude Include="HexFormatter.h" />
     <ClInclude Include="IdentifierFormatter.h" />
     <ClInclude Include="InterfaceFormatter.h" />
+    <ClInclude Include="LibraryFormatter.h" />
     <ClInclude Include="LibraryLoader.h" />
     <ClInclude Include="Loader.h" />
     <ClInclude Include="ParameterFormatter.h" />

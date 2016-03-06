@@ -62,6 +62,12 @@
     <ClCompile Include="ParameterFormatter.cpp">
       <Filter>Formatters</Filter>
     </ClCompile>
+    <ClCompile Include="CoclassFormatter.cpp">
+      <Filter>Formatters</Filter>
+    </ClCompile>
+    <ClCompile Include="LibraryFormatter.cpp">
+      <Filter>Formatters</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Com">
@@ -175,6 +181,12 @@
       <Filter>Formatters</Filter>
     </ClInclude>
     <ClInclude Include="ParameterFormatter.h">
+      <Filter>Formatters</Filter>
+    </ClInclude>
+    <ClInclude Include="CoclassFormatter.h">
+      <Filter>Formatters</Filter>
+    </ClInclude>
+    <ClInclude Include="LibraryFormatter.h">
       <Filter>Formatters</Filter>
     </ClInclude>
   </ItemGroup>
