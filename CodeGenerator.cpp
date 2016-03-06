@@ -178,6 +178,17 @@ namespace Com
 				<< "    <ResourceCompile Include=\"" << result.PrimaryLibrary.Name << ".rc\" />" << std::endl
 				<< "  </ItemGroup>" << std::endl
 				<< "  <Import Project=\"$(VCTargetsPath)\\Microsoft.Cpp.targets\" />" << std::endl
+				<< "  <Import Project=\"packages\\Jmfb.Com.1.0.6\\build\\native\\Jmfb.Com.targets\" "
+					<< "Condition=\"Exists('packages\\Jmfb.Com.1.0.6\\build\\native\\Jmfb.Com.targets')\" />" << std::endl
+				<< "  <Target Name=\"EnsureNuGetPackageBuildImports\" BeforeTargets=\"PrepareForBuild\">" << std::endl
+				<< "    <PropertyGroup>" << std::endl
+				<< "      <ErrorText>This project references NuGet package(s) that are missing on this computer. "
+					<< "Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. "
+					<< "The missing file is {0}.</ErrorText>" << std::endl
+				<< "    </PropertyGroup>" << std::endl
+				<< "    <Error Condition=\"!Exists('packages\\Jmfb.Com.1.0.6\\build\\native\\Jmfb.Com.targets')\" "
+					<< "Text=\"$([System.String]::Format('$(ErrorText)', 'packages\\Jmfb.Com.1.0.6\\build\\native\\Jmfb.Com.targets'))\" />" << std::endl
+				<< "  </Target>" << std::endl
 				<< "</Project>" << std::endl;
 		}
 
@@ -439,7 +450,7 @@ namespace Com
 		{
 			std::cout << "Generating source: main.cpp" << std::endl;
 			std::ofstream out{ "main.cpp" };
-			out << "#include \"Com/Com.h\"" << std::endl;
+			out << "#include <Com/Com.h>" << std::endl;
 			for (auto& coclass : library.Coclasses)
 				out << "#include \"" << coclass.Name << ".h\"" << std::endl;
 			out << std::endl

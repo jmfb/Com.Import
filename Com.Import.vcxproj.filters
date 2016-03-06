@@ -70,9 +70,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <Filter Include="Com">
-      <UniqueIdentifier>{75448d08-f36a-4e3c-aba9-82af6bc49ef5}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Importer">
       <UniqueIdentifier>{8ee4b990-97f7-4da4-8f1e-1026b7ce5688}</UniqueIdentifier>
     </Filter>
@@ -84,39 +81,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Com\Pointer.h">
-      <Filter>Com</Filter>
-    </ClInclude>
-    <ClInclude Include="Com\ObjectList.h">
-      <Filter>Com</Filter>
-    </ClInclude>
-    <ClInclude Include="Com\Object.h">
-      <Filter>Com</Filter>
-    </ClInclude>
-    <ClInclude Include="Com\Module.h">
-      <Filter>Com</Filter>
-    </ClInclude>
-    <ClInclude Include="Com\InterfaceList.h">
-      <Filter>Com</Filter>
-    </ClInclude>
-    <ClInclude Include="Com\Error.h">
-      <Filter>Com</Filter>
-    </ClInclude>
-    <ClInclude Include="Com\DispatchInterfaceSelector.h">
-      <Filter>Com</Filter>
-    </ClInclude>
-    <ClInclude Include="Com\Dispatch.h">
-      <Filter>Com</Filter>
-    </ClInclude>
-    <ClInclude Include="Com\Convert.h">
-      <Filter>Com</Filter>
-    </ClInclude>
-    <ClInclude Include="Com\Com.h">
-      <Filter>Com</Filter>
-    </ClInclude>
-    <ClInclude Include="Com\ClassFactory.h">
-      <Filter>Com</Filter>
-    </ClInclude>
     <ClInclude Include="DataTypes.h">
       <Filter>Importer</Filter>
     </ClInclude>
@@ -191,9 +155,9 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="packages.config" />
     <None Include=".gitignore" />
     <None Include="jmfb-com-import.nuspec" />
+    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="jmfb-com-import.txt" />

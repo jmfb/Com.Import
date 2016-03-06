@@ -1,6 +1,6 @@
 #pragma once
 #include "DataTypes.h"
-#include "Com/Com.h"
+#include <Com/Com.h>
 
 namespace Com
 {

@@ -34,7 +34,7 @@ namespace Com
 		void LibraryFormatter::WriteAsImport(std::ostream& out) const
 		{
 			out << "#pragma once" << std::endl
-				<< "#include \"Com/Com.h\"" << std::endl;
+				<< "#include <Com/Com.h>" << std::endl;
 			for (auto& reference : value.References)
 				out << "#include \"" << reference << "\"" << std::endl;
 			out << "#pragma pack(push, 8)" << std::endl

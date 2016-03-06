@@ -171,17 +171,6 @@
     <ClInclude Include="ArgumentNames.h" />
     <ClInclude Include="CoclassFormatter.h" />
     <ClInclude Include="CodeGenerator.h" />
-    <ClInclude Include="Com\ClassFactory.h" />
-    <ClInclude Include="Com\Com.h" />
-    <ClInclude Include="Com\Convert.h" />
-    <ClInclude Include="Com\Dispatch.h" />
-    <ClInclude Include="Com\DispatchInterfaceSelector.h" />
-    <ClInclude Include="Com\Error.h" />
-    <ClInclude Include="Com\InterfaceList.h" />
-    <ClInclude Include="Com\Module.h" />
-    <ClInclude Include="Com\Object.h" />
-    <ClInclude Include="Com\ObjectList.h" />
-    <ClInclude Include="Com\Pointer.h" />
     <ClInclude Include="DataTypes.h" />
     <ClInclude Include="EnumFormatter.h" />
     <ClInclude Include="FunctionDescription.h" />
@@ -213,5 +202,12 @@
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
+    <Import Project="packages\Jmfb.Com.1.0.6\build\native\Jmfb.Com.targets" Condition="Exists('packages\Jmfb.Com.1.0.6\build\native\Jmfb.Com.targets')" />
   </ImportGroup>
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('packages\Jmfb.Com.1.0.6\build\native\Jmfb.Com.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\Jmfb.Com.1.0.6\build\native\Jmfb.Com.targets'))" />
+  </Target>
 </Project>
