@@ -9,7 +9,12 @@ namespace Com
 		enum class InterfaceFormat
 		{
 			AsForwardDeclaration,
+			AsWrapperForwardDeclaration,
 			AsNative,
+			AsResolveNameConflict,
+			AsWrapper,
+			AsWrapperFunctions,
+			AsRawFunctions,
 			AsTypeInfoSpecialization
 		};
 
@@ -33,8 +38,15 @@ namespace Com
 
 		private:
 			void WriteAsForwardDeclaration(std::ostream& out) const;
+			void WriteAsWrapperForwardDeclaration(std::ostream& out) const;
 			void WriteAsNative(std::ostream& out) const;
+			void WriteAsResolveNameConflict(std::ostream& out) const;
+			void WriteAsWrapper(std::ostream& out) const;
+			void WriteAsWrapperFunctions(std::ostream& out) const;
+			void WriteAsRawFunctions(std::ostream& out) const;
 			void WriteAsTypeInfoSpecialization(std::ostream& out) const;
+
+			std::string InterfaceFormatter::GetWrapperBase() const;
 		};
 
 		InterfaceFormatter Format(

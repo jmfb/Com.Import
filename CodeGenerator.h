@@ -48,7 +48,6 @@ namespace Com
 			void Write(const Library& library);
 			void Write(const std::vector<Enum>& enums);
 			void ForwardDeclare(const std::vector<Interface>& interfaces);
-			void ForwardDeclare(const Interface& iface);
 			void Write(const std::vector<Alias>& aliases);
 			void Write(const std::vector<Record>& records);
 			void Write(const std::vector<Interface>& interfaces);
@@ -59,13 +58,8 @@ namespace Com
 				const Interface& iface,
 				FunctionDefinition definition,
 				const std::string& className);
-			void WriteRawFunctions(const Interface& iface);
 			void WriteWrappers(const std::vector<Interface>& interfaces);
-			void WriteWrapper(const Interface& iface);
 			void WriteComTypeInfo(const std::string& libraryName, const std::vector<Interface>& interfaces);
-			void WriteWrapperFunctions(const Interface& iface);
-			void WriteWrapperDispatch(const std::string& interfaceName, const Function& function);
-			static std::string GetWrapperBase(const Interface& iface);
 		};
 	}
 };

@@ -562,14 +562,8 @@ namespace Com
 		void CodeGenerator::ForwardDeclare(const std::vector<Interface>& interfaces)
 		{
 			for (auto& iface : interfaces)
-				ForwardDeclare(iface);
-		}
-
-		void CodeGenerator::ForwardDeclare(const Interface& iface)
-		{
-			out << Format(iface, InterfaceFormat::AsForwardDeclaration)
-				<< "	template <typename Interface> class " << iface.Name << "PtrT;" << std::endl
-				<< "	using " << iface.Name << "Ptr = " << iface.Name << "PtrT<" << iface.Name << ">;" << std::endl;
+				out << Format(iface, InterfaceFormat::AsForwardDeclaration)
+					<< Format(iface, InterfaceFormat::AsWrapperForwardDeclaration);
 		}
 
 		void CodeGenerator::Write(const std::vector<Alias>& aliases)
@@ -605,67 +599,16 @@ namespace Com
 		void CodeGenerator::Write(const Coclass& coclass)
 		{
 			for (auto& iface : coclass.Interfaces)
-			{
 				if (iface.IsConflicting)
-				{
-					out << "	class __declspec(uuid(\"" << Format(iface.Iid, GuidFormat::AsString) << "\")) "
-						<< iface.Name << "_" << coclass.Name << " : public " << iface.Name << std::endl
-						<< "	{" << std::endl
-						<< "	public:" << std::endl;
-					for (auto& function : iface.Functions)
-					{
-						if ((function.VtblOffset == 0 && function.IsDispatchOnly) || (function.VtblOffset >= iface.VtblOffset))
-						{
-							out << "		virtual ";
-							out << Format(function.Retval, TypeFormat::AsNative);
-							out << " __stdcall " << iface.Name << "_raw_" << function.Name << "(";
-							auto first = true;
-							for (auto& argument : function.ArgList)
-							{
-								if (!first)
-									out << ", ";
-								first = false;
-								out << Format(argument.Type, TypeFormat::AsNative);
-								out << " " << argument.Name;
-							}
-							out << ") = 0;" << std::endl;
-							out << "		";
-							out << Format(function.Retval, TypeFormat::AsNative);
-							out << " __stdcall raw_" << function.Name << "(";
-							first = true;
-							for (auto& argument : function.ArgList)
-							{
-								if (!first)
-									out << ", ";
-								first = false;
-								out << Format(argument.Type, TypeFormat::AsNative);
-								out << " " << argument.Name;
-							}
-							out << ") final" << std::endl
-								<< "		{" << std::endl
-								<< "			return " << iface.Name << "_raw_" << function.Name << "(";
-							first = true;
-							for (auto& argument : function.ArgList)
-							{
-								if (!first)
-									out << ", ";
-								first = false;
-								out << argument.Name;
-							}
-							out << ");" << std::endl
-								<< "		}" << std::endl;
-						}
-					}
-					out << "	};" << std::endl;
-				}
-			}
+					out << Format(iface, InterfaceFormat::AsResolveNameConflict, coclass.Name + "_");
 			out << "	template <typename Type>" << std::endl
 				<< "	class " << coclass.Name << "Coclass : public Com::Object<Type, &CLSID_" << coclass.Name;
 			for (auto& iface : coclass.Interfaces)
 			{
-				out << ", " << iface.Name;
+				out << ", ";
 				if (iface.IsConflicting)
-					out << "_" << coclass.Name;
+					out << coclass.Name << "_";
+				out << iface.Name;
 			}
 			out << ">" << std::endl
 				<< "	{" << std::endl
@@ -676,7 +619,7 @@ namespace Com
 					FunctionDefinition::Abstract,
 					coclass.Name);
 			for (auto& iface : coclass.Interfaces)
-				WriteRawFunctions(iface);
+				out << Format(iface, InterfaceFormat::AsRawFunctions);
 			out << "	};" << std::endl;
 		}
 
@@ -712,7 +655,7 @@ namespace Com
 						if (!first)
 							out << ", ";
 						first = false;
-						out << Format(argument);
+						out << Format(argument, ParameterFormat::AsWrapper);
 					}
 					out << ")";
 					switch (definition)
@@ -735,118 +678,12 @@ namespace Com
 			}
 		}
 
-		void CodeGenerator::WriteRawFunctions(const Interface& iface)
-		{
-			for (auto& function : iface.Functions)
-			{
-				if (function.VtblOffset >= iface.VtblOffset && function.Retval.TypeEnum == TypeEnum::Hresult)
-				{
-					out << "		HRESULT __stdcall ";
-					if (iface.IsConflicting)
-						out << iface.Name << "_";
-					out << "raw_" << function.Name << "(";
-					auto first = true;
-					for (auto& argument : function.ArgList)
-					{
-						if (!first)
-							out << ", ";
-						first = false;
-						out << Format(argument.Type, TypeFormat::AsNative);
-						out << " " << argument.Name;
-					}
-					out << ") final" << std::endl
-						<< "		{" << std::endl
-						<< "			try" << std::endl
-						<< "			{" << std::endl
-						<< "				";
-					if (!function.ArgList.empty() && function.ArgList.back().Retval)
-					{
-						auto& retval = function.ArgList.back();
-						if (retval.Type.TypeEnum == TypeEnum::Int16)
-							out << "Com::CheckPointer(" << retval.Name << ") = ";
-						else
-							out << "Com::Retval(" << retval.Name << ") = ";
-					}
-					if (iface.IsConflicting)
-						out << iface.Name << "_";
-					out << function.Name << "(";
-					first = true;
-					for (auto& argument : function.ArgList)
-					{
-						if (argument.Retval)
-							break;
-						if (!first)
-							out << ", ";
-						first = false;
-						if (argument.Out)
-						{
-							if (argument.Type.TypeEnum == TypeEnum::Int16)
-								out << "Com::CheckPointer(" << argument.Name << ")";
-							else
-								out << "Com::InOut(" << argument.Name << ")";
-						}
-						else
-						{
-							if (argument.Type.TypeEnum == TypeEnum::Int16)
-								out << argument.Name;
-							else
-								out << "Com::In(" << argument.Name << ")";
-						}
-					}
-					out << ");" << std::endl
-						<< "			}" << std::endl
-						<< "			catch (...)" << std::endl
-						<< "			{" << std::endl
-						<< "				return Com::HandleException();" << std::endl
-						<< "			}" << std::endl
-						<< "			return S_OK;" << std::endl
-						<< "		}" << std::endl;
-				}
-			}
-		}
-
 		void CodeGenerator::WriteWrappers(const std::vector<Interface>& interfaces)
 		{
 			for (auto& iface : interfaces)
-				WriteWrapper(iface);
+				out << Format(iface, InterfaceFormat::AsWrapper);
 			for (auto& iface : interfaces)
-				WriteWrapperFunctions(iface);
-		}
-
-		void CodeGenerator::WriteWrapper(const Interface& iface)
-		{
-			out << "	template <typename Interface>" << std::endl
-				<< "	class " << iface.Name << "PtrT : public " << GetWrapperBase(iface) << std::endl
-				<< "	{" << std::endl
-				<< "	public:" << std::endl
-				<< "		" << iface.Name << "PtrT(Interface* value = nullptr);" << std::endl
-				<< "		" << iface.Name << "PtrT<Interface>& operator=(Interface* value);" << std::endl
-				<< "		operator " << iface.Name << "*() const;" << std::endl;
-			for (auto& function : iface.Functions)
-			{
-				if ((function.VtblOffset == 0 && function.IsDispatchOnly) ||
-					(function.VtblOffset >= iface.VtblOffset))
-				{
-					out << "		";
-					if (!function.ArgList.empty() && function.ArgList.back().Retval)
-						out << Format(function.ArgList.back().Type, TypeFormat::AsWrapper);
-					else
-						out << "void";
-					out << " " << function.Name << "(";
-					auto first = true;
-					for (auto& argument : function.ArgList)
-					{
-						if (argument.Retval)
-							break;
-						if (!first)
-							out << ", ";
-						first = false;
-						out << Format(argument);
-					}
-					out << ");" << std::endl;
-				}
-			}
-			out << "	};" << std::endl;
+				out << Format(iface, InterfaceFormat::AsWrapperFunctions, implement ? "raw_" : "");
 		}
 
 		void CodeGenerator::WriteComTypeInfo(const std::string& libraryName, const std::vector<Interface>& interfaces)
@@ -856,45 +693,6 @@ namespace Com
 			for (auto& iface : interfaces)
 				out << Format(iface, InterfaceFormat::AsTypeInfoSpecialization, "", libraryName);
 			out << "}" << std::endl;
-		}
-
-		void CodeGenerator::WriteWrapperFunctions(const Interface& iface)
-		{
-			out << "	template <typename Interface>" << std::endl
-				<< "	inline " << iface.Name << "PtrT<Interface>::" << iface.Name << "PtrT(Interface* value) : " << GetWrapperBase(iface) << "(value)" << std::endl
-				<< "	{" << std::endl
-				<< "	}" << std::endl
-				<< "	template <typename Interface>" << std::endl
-				<< "	inline " << iface.Name << "PtrT<Interface>& " << iface.Name << "PtrT<Interface>::operator=(Interface* value)" << std::endl
-				<< "	{" << std::endl
-				<< "		using Base = " << GetWrapperBase(iface) << ";" << std::endl
-				<< "		Base::operator=(value);" << std::endl
-				<< "		return *this;" << std::endl
-				<< "	}" << std::endl
-				<< "	template <typename Interface>" << std::endl
-				<< "	inline " << iface.Name << "PtrT<Interface>::operator " << iface.Name << "*() const" << std::endl
-				<< "	{" << std::endl
-				<< "		return p;" << std::endl
-				<< "	}" << std::endl;
-			for (auto& function : iface.Functions)
-			{
-				if (function.VtblOffset == 0 && function.IsDispatchOnly)
-					WriteWrapperDispatch(iface.Name, function);
-				else if (function.VtblOffset >= iface.VtblOffset)
-					out << Format(function, FunctionFormat::AsWrapperImplementation, implement ? "raw_" : "", iface.Name);
-			}
-		}
-
-		void CodeGenerator::WriteWrapperDispatch(const std::string& interfaceName, const Function& function)
-		{
-			//TODO: dispatch only implementation
-		}
-
-		std::string CodeGenerator::GetWrapperBase(const Interface& iface)
-		{
-			if (iface.Base == "IUnknown" || iface.Base == "IDispatch")
-				return "Com::Pointer<Interface>";
-			return iface.Base + "PtrT<Interface>";
 		}
 	}
 };

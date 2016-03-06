@@ -9,7 +9,11 @@ namespace Com
 		enum class FunctionFormat
 		{
 			AsAbstract,
-			AsWrapperImplementation
+			AsResolveNameConflict,
+			AsWrapper,
+			AsWrapperImplementation,
+			AsWrapperDispatch,
+			AsRawImplementation
 		};
 
 		class FunctionFormatter
@@ -32,7 +36,11 @@ namespace Com
 
 		private:
 			void WriteAsAbstract(std::ostream& out) const;
+			void WriteAsResolveNameConflict(std::ostream& out) const;
+			void WriteAsWrapper(std::ostream& out) const;
 			void WriteAsWrapperImplementation(std::ostream& out) const;
+			void WriteAsWrapperDispatch(std::ostream& out) const;
+			void WriteAsRawImplementation(std::ostream& out) const;
 		};
 
 		FunctionFormatter Format(

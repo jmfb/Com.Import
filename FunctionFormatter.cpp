@@ -22,8 +22,20 @@ namespace Com
 			case FunctionFormat::AsAbstract:
 				WriteAsAbstract(out);
 				break;
+			case FunctionFormat::AsResolveNameConflict:
+				WriteAsResolveNameConflict(out);
+				break;
+			case FunctionFormat::AsWrapper:
+				WriteAsWrapper(out);
+				break;
 			case FunctionFormat::AsWrapperImplementation:
 				WriteAsWrapperImplementation(out);
+				break;
+			case FunctionFormat::AsWrapperDispatch:
+				WriteAsWrapperDispatch(out);
+				break;
+			case FunctionFormat::AsRawImplementation:
+				WriteAsRawImplementation(out);
 				break;
 			}
 			return out;
@@ -53,6 +65,53 @@ namespace Com
 			out << ") = 0;" << std::endl;
 		}
 
+		void FunctionFormatter::WriteAsResolveNameConflict(std::ostream& out) const
+		{
+			out << "		" << Format(value.Retval, TypeFormat::AsNative) << " __stdcall raw_" << value.Name << "(";
+			auto first = true;
+			for (auto& argument : value.ArgList)
+			{
+				if (!first)
+					out << ", ";
+				first = false;
+				out << Format(argument, ParameterFormat::AsNative);
+			}
+			out << ") final" << std::endl
+				<< "		{" << std::endl
+				<< "			return " << prefix << "raw_" << value.Name << "(";
+			first = true;
+			for (auto& argument : value.ArgList)
+			{
+				if (!first)
+					out << ", ";
+				first = false;
+				out << argument.Name;
+			}
+			out << ");" << std::endl
+				<< "		}" << std::endl;
+		}
+
+		void FunctionFormatter::WriteAsWrapper(std::ostream& out) const
+		{
+			out << "		";
+			if (!value.ArgList.empty() && value.ArgList.back().Retval)
+				out << Format(value.ArgList.back().Type, TypeFormat::AsWrapper);
+			else
+				out << "void";
+			out << " " << value.Name << "(";
+			auto first = true;
+			for (auto& argument : value.ArgList)
+			{
+				if (argument.Retval)
+					break;
+				if (!first)
+					out << ", ";
+				first = false;
+				out << Format(argument, ParameterFormat::AsWrapper);
+			}
+			out << ");" << std::endl;
+		}
+
 		void FunctionFormatter::WriteAsWrapperImplementation(std::ostream& out) const
 		{
 			out << "	template <typename Interface>" << std::endl
@@ -71,7 +130,7 @@ namespace Com
 				if (!first)
 					out << ", ";
 				first = false;
-				out << Format(argument);
+				out << Format(argument, ParameterFormat::AsWrapper);
 			}
 			out << ")" << std::endl
 				<< "	{" << std::endl;
@@ -109,6 +168,50 @@ namespace Com
 			if (hasRetval)
 				out << "		return retval;" << std::endl;
 			out << "	}" << std::endl;
+		}
+
+		void FunctionFormatter::WriteAsWrapperDispatch(std::ostream& out) const
+		{
+			//TODO: dispatch-only wrapper implementation
+		}
+
+		void FunctionFormatter::WriteAsRawImplementation(std::ostream& out) const
+		{
+			out << "		HRESULT __stdcall " << prefix << "raw_" << value.Name << "(";
+			auto first = true;
+			for (auto& argument : value.ArgList)
+			{
+				if (!first)
+					out << ", ";
+				first = false;
+				out << Format(argument, ParameterFormat::AsNative);
+			}
+			out << ") final" << std::endl
+				<< "		{" << std::endl
+				<< "			try" << std::endl
+				<< "			{" << std::endl
+				<< "				";
+			if (!value.ArgList.empty() && value.ArgList.back().Retval)
+				out << Format(value.ArgList.back(), ParameterFormat::AsWrapperReturnValue) << " = ";
+			out << prefix << value.Name << "(";
+			first = true;
+			for (auto& argument : value.ArgList)
+			{
+				if (argument.Retval)
+					break;
+				if (!first)
+					out << ", ";
+				first = false;
+				out << Format(argument, ParameterFormat::AsWrapperArgument);
+			}
+			out << ");" << std::endl
+				<< "			}" << std::endl
+				<< "			catch (...)" << std::endl
+				<< "			{" << std::endl
+				<< "				return Com::HandleException();" << std::endl
+				<< "			}" << std::endl
+				<< "			return S_OK;" << std::endl
+				<< "		}" << std::endl;
 		}
 
 		FunctionFormatter Format(
